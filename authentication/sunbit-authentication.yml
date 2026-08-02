@@ -1,0 +1,127 @@
+generated: '2026-07-31'
+method: searched
+source: https://docs.sunbit.com/docs/overview/getting-started
+docs:
+- https://docs.sunbit.com/docs/overview/getting-started
+- https://docs.sunbit.com/docs/overview/production-access
+- https://docs.sunbit.com/docs/sdk-integrations/sunbit-payment-path
+note: >-
+  Derived by reading Sunbit's published developer documentation, not from an OpenAPI
+  document — Sunbit publishes no machine-readable specification. Every scheme below is
+  named verbatim in the docs.
+summary:
+  types:
+  - apiKey
+  - http
+  api_key_in:
+  - header
+  oauth2_flows: []
+  openid_connect: false
+  mutual_tls: false
+  ip_allowlisting: true
+schemes:
+- name: sunbit-key
+  type: apiKey
+  in: header
+  parameter_name: sunbit-key
+  description: >-
+    Partner/alliance API key issued by Sunbit. Required on every Sunbit Partner API call.
+    Keys are environment-scoped — sandbox and production keys are distinct. The same key is
+    also used as the publishable initializer for the browser SDK (SUNBIT.init sunbitKey),
+    where the secret must never be included.
+  environments:
+    sandbox: https://api-sandbox.sunbit.com
+    production: https://api.sunbit.com
+  sources:
+  - https://docs.sunbit.com/docs/api-integrations/sunbit-pre-qualification
+  - https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- name: sunbit-secret
+  type: apiKey
+  in: header
+  parameter_name: sunbit-secret
+  description: >-
+    Paired secret issued by Sunbit, sent alongside sunbit-key. Required on the higher-trust
+    server-to-server operations (checkout initialization, void, refund, merchant onboarding,
+    embedded portal login link, reporting) and optional on transaction lookup. Must never be
+    placed in browser/client code.
+  required_on:
+  - POST /epay/api/v1/epay
+  - PUT /epay/api/v1/epay/cancel/{purchaseId}
+  - PUT /epay/api/v1/epay/changeAmount/{purchaseId}
+  - POST /onboarding/api/v1/location
+  - GET /onboarding/api/v1/location/{location}
+  - POST /developers-portal-service/api/v2/auth/login-link
+  - POST /alliance/api/v1/merchant-authentication
+  - GET /reports/api/v1/summary
+  - GET /reports/api/v1/detailed
+  - GET /reports/api/v1/customer-offer-history
+  optional_on:
+  - GET /epay/api/v1/epay
+  not_required_on:
+  - PUT /purchase/api/v1/online-link
+  - PUT /purchase/api/v1/payment-estimation
+  - POST /epay/api/v1/epay/send-link
+  sources:
+  - https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+  - https://docs.sunbit.com/docs/onboarding/adding-new-location
+- name: merchantAuthToken
+  type: http
+  scheme: bearer
+  description: >-
+    Short-lived bearer token minted by POST /alliance/api/v1/merchant-authentication for the
+    Payment Path SDK. Exchanged from sunbit-key + sunbit-secret plus a location; returned with
+    an ISO-8601 expiresAt. The docs instruct integrators to treat the token as opaque and not
+    parse it. Used browser-side to initialize the Payment Path module.
+  token_endpoint: https://api.sunbit.com/alliance/api/v1/merchant-authentication
+  token_endpoint_sandbox: https://api-sandbox.sunbit.com/alliance/api/v1/merchant-authentication
+  expiry: ISO-8601 expiresAt returned with the token
+  sources:
+  - https://docs.sunbit.com/docs/sdk-integrations/sunbit-payment-path
+- name: checkoutToken
+  type: http
+  scheme: bearer
+  bearerFormat: JWT
+  description: >-
+    Per-transaction JWT returned by the checkout initialization call
+    (POST /epay/api/v1/epay). Handed to the browser and passed to SUNBIT.epay.checkout to
+    open the hosted checkout modal. Carries the retailer/alliance/transaction context and an
+    exp claim; it authorizes one checkout, not the API.
+  sources:
+  - https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+additional_controls:
+- control: ip-allowlist
+  description: >-
+    Several endpoints are additionally restricted by source IP. The checkout initialization
+    call returns 403 "IP address is not allowed for this sunbitKey" when the caller's IP does
+    not match the account, and the Customer Offer History report requires the requesting IP to
+    be on an authorized IP list ("Your IP address is not registered to access this endpoint").
+  applies_to:
+  - POST /epay/api/v1/epay
+  - GET /reports/api/v1/customer-offer-history
+  sources:
+  - https://docs.sunbit.com/docs/reporting/customer-offer-history-report
+- control: webhook-signature
+  description: >-
+    Inbound webhooks are authenticated to the integrator with an HMAC-SHA256 signature in the
+    Sunbit-Signature header (t=<unix-seconds>,v1=<hex>), signed over "<timestamp>.<raw body>"
+    with a per-endpoint secret generated in the developer portal. See asyncapi/sunbit-webhooks.yml.
+  sources:
+  - https://docs.sunbit.com/docs/webhooks/webhooks-verify-signature
+credential_management:
+  issuance: >-
+    Credentials are not self-serve. Sunbit grants a partner access to the Sunbit Developers
+    Portal (developers.sunbit.com); an administrator registers, then invites additional users
+    and manages their permissions. API keys for both sandbox and production are retrieved from
+    the portal's Keys tab.
+  production_access: >-
+    Production keys are gated behind a "Request Production Access" button in the portal, which
+    triggers Sunbit-side verification; the team is emailed when production is enabled.
+  portal: https://developers.sunbit.com/
+  sources:
+  - https://docs.sunbit.com/docs/overview/getting-started
+  - https://docs.sunbit.com/docs/overview/production-access
+observations:
+- no OAuth 2.0 authorization server, no OpenID Connect discovery, and no published scopes
+- no /.well-known/oauth-authorization-server or /.well-known/openid-configuration on any host
+- secrets are long-lived shared credentials with no documented rotation or expiry policy
+- there is no documented mechanism for scoping a credential to a subset of operations

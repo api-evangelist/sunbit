@@ -1,0 +1,82 @@
+generated: '2026-07-31'
+method: searched
+source: >-
+  registry searches of npm, PyPI, Maven Central, NuGet, pkg.go.dev, RubyGems, Packagist and
+  crates.io, plus the GitHub API and Sunbit's own SDK documentation
+note: >-
+  Sunbit ships exactly one first-party client library: a hosted browser SDK delivered from its
+  own CDN. It publishes nothing to any package registry and operates no public GitHub
+  organization, so there is no installable, pinnable, or auditable package for any
+  server-side language.
+
+packages:
+- language: javascript
+  registry: cdn
+  name: sunbit-sdk.js
+  url: https://static.sunbit.com/sdk/sunbit-sdk.js
+  install: <script async defer src="https://static.sunbit.com/sdk/sunbit-sdk.js"></script>
+  docs: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+  official: true
+  scope: browser only
+  global: SUNBIT
+  versioned: false
+  integrity_hash: false
+  description: >-
+    Sunbit's official JavaScript SDK. Exposes SUNBIT.init, SUNBIT.UI.asLowAs,
+    SUNBIT.UI.asLowAsWithLink, SUNBIT.UI.checkFinancingLink, SUNBIT.UI.checkoutElement,
+    SUNBIT.epay.init / SUNBIT.epay.checkout, and SUNBIT.PaymentPathModule. See
+    components/sunbit-components.yml for the full surface.
+
+registries_checked:
+- registry: npm
+  query: sunbit
+  first_party_results: 0
+  note: >-
+    The only match, `sunbit-schematics`, is an unrelated third-party React schematics
+    generator published by an individual maintainer (penkeru, repo penkeru/sunbit-schematics,
+    last published 2022) — not a Sunbit client library and not first-party.
+- registry: pypi
+  first_party_results: 0
+- registry: maven-central
+  first_party_results: 0
+- registry: nuget
+  first_party_results: 0
+- registry: pkg.go.dev
+  first_party_results: 0
+- registry: rubygems
+  first_party_results: 0
+- registry: packagist
+  first_party_results: 0
+- registry: crates.io
+  first_party_results: 0
+
+source_code:
+  github_organization: none
+  probe: https://api.github.com/orgs/sunbit returned 404
+  note: >-
+    Sunbit has no public GitHub organization. No SDK source, no sample applications, and no
+    published .proto or schema files are available. Every integration is written from the
+    prose documentation.
+
+third_party_distribution:
+  note: >-
+    Sunbit is reachable indirectly as a payment method through Stripe, which added Sunbit as a
+    buy-now-pay-later method; in that path the integrator uses Stripe's SDKs rather than
+    Sunbit's. That is a Stripe artifact, not a Sunbit-published package, and is recorded here
+    only as context.
+  reference: https://docs.stripe.com/payments/sunbit
+
+summary:
+  official_packages: 1
+  languages: [javascript]
+  registry_published: 0
+  cdn_published: 1
+  server_side_sdks: 0
+
+gaps:
+- No server-side SDK in any language, despite the API being explicitly designed as a
+  server-to-server integration (checkout initialization, void, refund, onboarding and
+  reporting all require the secret and must run server-side).
+- The one shipped library is unversioned and unpinnable — no semver, no registry, no
+  subresource integrity hash.
+- No public source repository for the SDK or for reference implementations.

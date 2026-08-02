@@ -1,0 +1,248 @@
+generated: '2026-07-31'
+method: derived
+source: >-
+  derived from Sunbit's published developer documentation (docs.sunbit.com) plus live probes
+  of every Sunbit host; no OpenAPI or other machine-readable contract is published
+docs: https://docs.sunbit.com/
+
+note: >-
+  Each entry records whether Sunbit's public API surface conforms to a cross-cutting standard,
+  with the evidence that decision rests on. `conforms: false` here means "not observed in the
+  published surface" — it is a statement about what Sunbit documents, not an accusation about
+  internal practice.
+
+standards:
+
+- id: openapi
+  conforms: false
+  evidence: >-
+    No OpenAPI or Swagger document is published. Probed /openapi.json, /openapi.yaml,
+    /swagger.json, /v3/api-docs, /v2/api-docs, /api-docs, /swagger-ui.html and
+    /v3/api-docs/swagger-config on api.sunbit.com, api.sunbit.com/developers-portal-service,
+    and the docs host — the API edge returns a blanket 403 and the docs host is a Docusaurus
+    SPA. A human-readable API reference is indexed at
+    https://api.sunbit.com/purchase-service/payment-estimation/index.html but returns 403 to
+    every external client tested, so it could not be retrieved or confirmed as a spec.
+
+- id: asyncapi
+  conforms: false
+  evidence: >-
+    A real webhook surface with 20 event types exists and is documented in prose, but no
+    AsyncAPI document is published (see asyncapi/sunbit-webhooks.yml).
+
+- id: graphql
+  conforms: false
+  evidence: No GraphQL endpoint is documented or discoverable.
+
+- id: grpc
+  conforms: false
+  evidence: No .proto definitions; no public GitHub organization and no buf.build presence.
+
+- id: mcp
+  conforms: false
+  evidence: >-
+    No hosted or remote Model Context Protocol server is published, referenced in the docs, or
+    discoverable on any Sunbit host.
+
+- id: a2a-agent-card
+  conforms: false
+  evidence: >-
+    Probed /.well-known/agent-card.json and /.well-known/agent.json on sunbit.com,
+    api.sunbit.com, api-sandbox.sunbit.com, docs.sunbit.com, developers.sunbit.com,
+    dashboard.sunbit.com, merchant-onboarding.sunbit.com and static.sunbit.com. sunbit.com
+    returns 404; the API hosts return 403; the SPA hosts return HTML shells with HTTP 200,
+    which are catch-all false positives, not agent cards.
+
+- id: oauth2
+  conforms: false
+  evidence: >-
+    No OAuth 2.0 authorization server. Authentication is a static sunbit-key/sunbit-secret
+    header pair. /.well-known/oauth-authorization-server is absent on every host.
+
+- id: oidc
+  conforms: false
+  evidence: /.well-known/openid-configuration returns 404 on sunbit.com and is absent elsewhere.
+
+- id: oauth-scopes
+  conforms: false
+  evidence: >-
+    No scope model. Credentials are all-or-nothing per alliance; there is no way to issue a
+    read-only or operation-scoped key.
+
+- id: rfc7235-http-authentication
+  conforms: partial
+  evidence: >-
+    Credentials are carried in custom headers (sunbit-key, sunbit-secret) rather than the
+    standard Authorization header, and no WWW-Authenticate challenge is documented. The newer
+    /alliance service does mint a conventional bearer token.
+
+- id: rfc9457-problem-details
+  conforms: false
+  evidence: >-
+    Errors use proprietary JSON envelopes ({message, code} and {code, message, description})
+    with application/json, not application/problem+json, and carry no problem `type` URI.
+
+- id: rfc8594-sunset-header
+  conforms: false
+  evidence: >-
+    No Sunset or Deprecation response headers. Deprecations are announced only as prose
+    callouts in the docs (see lifecycle/sunbit-lifecycle.yml).
+
+- id: rfc9116-security-txt
+  conforms: partial
+  evidence: >-
+    https://sunbit.com/.well-known/security.txt exists and is well-formed with Contact,
+    Expires, Encryption and Preferred-Languages fields — but the Expires value is
+    2022-12-31T21:59:00.000Z, so the file is expired by more than three years and is
+    non-conformant on RFC 9116's freshness requirement. No Policy field is present.
+
+- id: rfc8615-well-known-uris
+  conforms: partial
+  evidence: >-
+    Only one /.well-known resource is served (security.txt on sunbit.com). Several Sunbit
+    hosts are SPAs that answer HTTP 200 with HTML for every /.well-known/* path, which
+    actively breaks well-known discovery for any automated client.
+
+- id: rfc9727-api-catalog
+  conforms: false
+  evidence: /.well-known/api-catalog returns 404 on sunbit.com and is absent on all other hosts.
+
+- id: llms-txt
+  conforms: false
+  evidence: >-
+    No /llms.txt on sunbit.com (404) or on the docs host (SPA catch-all HTML, not a document).
+
+- id: idempotency-key
+  conforms: false
+  evidence: >-
+    No Idempotency-Key header and no documented retry-safety contract on any write operation,
+    including checkout initialization, void and partial refund. See
+    conventions/sunbit-conventions.yml.
+
+- id: rest-http-method-semantics
+  conforms: partial
+  evidence: >-
+    PUT is used to create non-idempotent resources (PUT /purchase/api/v1/online-link mints a
+    new link; PUT /purchase/api/v1/payment-estimation is a pure computation over a request
+    body). Three reporting operations are documented as GET requests that carry a JSON request
+    body, which is not interoperable with proxies and clients that strip GET bodies.
+
+- id: http-status-semantics
+  conforms: partial
+  evidence: >-
+    Credential failure returns 401 on /onboarding and /alliance but 403 on /epay, /purchase
+    and /reports. A missing required `location` on send-link is documented as returning 500.
+
+- id: webhook-signature-hmac
+  conforms: true
+  evidence: >-
+    Webhooks are signed with HMAC-SHA256 over "<timestamp>.<raw body>" and delivered in a
+    Sunbit-Signature header using the t=/v1= scheme, with a documented verification procedure,
+    a published reference implementation, and a recommended ~5 minute replay tolerance.
+
+- id: standard-webhooks
+  conforms: false
+  evidence: >-
+    The signature design closely follows the widely-copied Stripe-style scheme but does not
+    implement the Standard Webhooks specification (no webhook-id, webhook-timestamp,
+    webhook-signature headers and no event id in the envelope).
+
+- id: pagination
+  conforms: partial
+  evidence: >-
+    Only GET /reports/api/v1/customer-offer-history is paginated, using a Spring Data Pageable
+    envelope (page/size query params; content, pageable, first, last, totalPages,
+    totalElements, numberOfElements, empty). The summary and detailed reports return unbounded
+    arrays with no page controls.
+
+- id: json-api
+  conforms: false
+  evidence: Responses are plain domain JSON; no JSON:API document structure or media type.
+
+- id: hal-hateoas
+  conforms: false
+  evidence: No hypermedia links in any documented response.
+
+- id: iso4217-currency
+  conforms: partial
+  evidence: >-
+    All amounts are USD, but no currency field or ISO 4217 code is carried on any request or
+    response — the currency is implicit in Sunbit being US-only.
+
+- id: iso8601-datetime
+  conforms: partial
+  evidence: >-
+    Three serializations coexist — YYYY-MM-DD, "YYYY-MM-DD'T'hh:mm:ss" (no timezone offset),
+    and "YYYY-MM-DD HH:MM:SS" (space separator, not ISO 8601). Only the Payment Path token
+    expiresAt is a fully-qualified ISO-8601 instant.
+
+- id: tls-1.2-plus
+  conforms: true
+  evidence: >-
+    sunbit.com, docs.sunbit.com and api.sunbit.com all negotiate TLSv1.3 (probed 2026-07-31).
+
+- id: hsts
+  conforms: partial
+  evidence: >-
+    sunbit.com sets HSTS with max-age 31536000 and docs.sunbit.com with max-age 2592000, but
+    api.sunbit.com — the production API host — returns no HSTS header.
+
+- id: dnssec
+  conforms: false
+  evidence: sunbit.com is not DNSSEC-signed (probed 2026-07-31).
+
+- id: caa
+  conforms: true
+  evidence: >-
+    sunbit.com publishes CAA records restricting issuance to pki.goog, sectigo.com,
+    amazon.com and letsencrypt.org.
+
+- id: spf
+  conforms: true
+  evidence: SPF record present on sunbit.com.
+
+- id: dmarc
+  conforms: partial
+  evidence: >-
+    DMARC is published with policy p=quarantine rather than p=reject.
+
+- id: pci-dss
+  conforms: unknown
+  evidence: >-
+    Sunbit is a consumer lender operating a hosted checkout that captures debit card and bank
+    details, so PCI scope plainly applies, but no PCI DSS attestation, trust center, or
+    compliance page is published. Probed trust.sunbit.com and security.sunbit.com (NXDOMAIN)
+    and sunbit.com/security, /compliance, /trust (all 404).
+
+- id: soc2
+  conforms: unknown
+  evidence: No SOC 2 report, trust center, or certification page is published.
+
+- id: gdpr
+  conforms: not_applicable
+  evidence: Sunbit operates in the United States only.
+
+- id: ccpa-cpra
+  conforms: true
+  evidence: >-
+    A consumer privacy notice at https://sunbit.com/consumer_privacy/ carries a California
+    Notice at Collection (#cnac) and a Do Not Sell/Share My Personal Information section
+    (#donotsell).
+
+- id: wcag-accessibility
+  conforms: partial
+  evidence: An accessibility statement is published at https://sunbit.com/accessibility/.
+
+summary:
+  conforms_true: 6
+  conforms_partial: 11
+  conforms_false: 14
+  unknown: 2
+  not_applicable: 1
+  compliance_program_published: false
+  note: >-
+    No `Compliance` pointer is emitted in apis.yml because Sunbit publishes no certifications,
+    trust center, or compliance program — only a privacy notice and an accessibility
+    statement. The strongest positives are the signed-webhook design and the TLS/CAA/SPF
+    posture; the largest gaps are the total absence of a machine-readable contract and of any
+    idempotency or scoping model on a money-moving API.

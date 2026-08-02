@@ -1,0 +1,388 @@
+generated: '2026-07-31'
+method: derived
+source: >-
+  derived from the request/response field tables and webhook payloads published across
+  docs.sunbit.com; Sunbit publishes no OpenAPI, so entities and relationships are inferred
+  from documented fields, not from schema $refs
+docs: https://docs.sunbit.com/
+
+note: >-
+  Sunbit's model is small and centred on two keys: `location` (the merchant tenancy key,
+  supplied by the integrator) and `purchaseId` (the transaction key, issued by Sunbit). Every
+  documented object hangs off one of those two. There are no id prefixes and no published
+  object reference page.
+
+entities:
+
+- name: Alliance
+  aka: [partner, integrator, platform]
+  description: >-
+    The top-level tenant. An alliance is the SaaS platform or partner that holds the
+    sunbit-key/sunbit-secret credential pair. An alliance may be single- or multi-vertical;
+    multi-vertical alliances must send `location` explicitly on estimation and portal calls.
+  identified_by: the credential pair (no exposed id field)
+  fields:
+  - vertical
+  - sourcePlatform
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-estimate
+
+- name: Location
+  aka: [merchant, retailer, store]
+  description: >-
+    A single merchant location onboarded under an alliance. `location` is an
+    integrator-chosen unique identifier (store id, store name, or any other identifier) and is
+    the tenancy key on nearly every operation.
+  identified_by: location (string, integrator-assigned)
+  fields:
+  - location
+  - legalName
+  - businessName
+  - vertical
+  - businessAddress (AddressDetails)
+  - representativeDetails (BusinessRepresentative)
+  - sourcePlatform
+  - url
+  - creationDate
+  - status
+  - expiredInDays
+  - expirationDate
+  lifecycle_states:
+  - CREATED
+  - LOCATION_DETAILS_ADDED
+  - CONTACT_DETAILS_ADDED
+  - BANK_INFORMATION_ADDED
+  - LEGAL_INFORMATION_ADDED
+  - SUBMITTED
+  - ACTIVATED
+  - DECLINED
+  constraints:
+  - onboarding URL expires 30 days after creation if the application is not submitted
+  - a location may only be onboarded once per alliance (409 Conflict on re-post)
+  operations:
+  - POST /onboarding/api/v1/location
+  - GET /onboarding/api/v1/location/{location}
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+
+- name: Vertical
+  description: Closed enumeration classifying a merchant location's business type.
+  values:
+  - Car_Dealerships
+  - Car_Services
+  - Veterinary
+  - Motorsports_Parts_and_Services
+  - Dental
+  - Eyewear
+  - Home_Services
+  - Med_Spa
+  - Bridal
+  - General_Retail
+  - Jewelry_and_Watches
+  - Legal_Services
+  - Medical_Office
+  - Hospital_Health_System
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+
+- name: Department
+  description: >-
+    An optional subdivision within a merchant that differentiates the offers presented.
+    departmentId/departmentName values are assigned by Sunbit and the docs explicitly warn
+    integrators not to send values they were not given.
+  identified_by: departmentId
+  fields: [departmentId, departmentName, department]
+  source: https://docs.sunbit.com/docs/api-integrations/text-to-Pay-Over-Time-overtime
+
+- name: Representative
+  aka: [associate, advisor]
+  description: >-
+    The merchant employee attributed to a transaction. Carried on requests and echoed on
+    webhooks; used by Sunbit for associate-level experience and reporting.
+  fields:
+  - representativeFirstName
+  - representativeLastName
+  - representativeName
+  - representativeEmail
+  - representative
+  deprecated_aliases:
+  - advisorEmail
+  - advisorName
+  - associateName
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-pre-qualification
+
+- name: Customer
+  description: >-
+    The consumer applying for or completing financing. Sunbit accepts customer details to
+    pre-fill the application; it does not expose a customer resource to retrieve.
+  identified_by: customerId (surfaced only in the detailed report)
+  fields:
+  - firstName
+  - lastName
+  - email
+  - phone
+  - dateOfBirth
+  - addressDetails (AddressDetails)
+  privacy_note: >-
+    In the Customer Offer History report, customerEmail and customerPhone are documented as
+    always returning an empty string — present in the schema, permanently redacted in the
+    response.
+  source: https://docs.sunbit.com/docs/api-integrations/text-to-Pay-Over-Time-overtime
+
+- name: AddressDetails
+  description: Value object for a customer or business address.
+  fields: [address, city, state, zipcode, suite]
+
+- name: ShippingAddress
+  description: >-
+    Separate value object used only on checkout initialization; note the differing field names
+    from AddressDetails (street1 vs address, zipCode vs zipcode).
+  fields: [street1, city, state, zipCode]
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+
+- name: BusinessRepresentative
+  description: Value object for the merchant contact on an onboarding application.
+  fields: [firstName, lastName, phoneNumber, email]
+
+- name: Offer
+  aka: [pre-qualification, approval]
+  description: >-
+    What a customer qualifies for at a location. Produced by the pre-qualification flow;
+    surfaced through the PREQUAL_* webhooks and the Customer Offer History report. There is no
+    endpoint to fetch a single offer by id.
+  fields:
+  - approvalAmount
+  - maxAmount
+  - estimatedAvailableCredit
+  - purchaseAmountEntered
+  - amountUsed
+  - validUntil
+  - applicationDate
+  source: https://docs.sunbit.com/docs/webhooks/webhooks-prequal
+
+- name: PaymentEstimate
+  description: >-
+    A stateless "As Low As" quote for an amount. Not persisted and not addressable — the
+    request carries a caller-supplied `id` purely to correlate entries in the batch response.
+  request_fields: [id, totalAmount]
+  response_fields:
+  - id
+  - monthlyAmount
+  - amountFinanced
+  - downPayment
+  - apr
+  - downPaymentPercent
+  sentinel: >-
+    all numeric fields return -1 when the submitted amount is not financeable
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-estimate
+
+- name: Purchase
+  aka: [transaction, epay]
+  description: >-
+    The central money object. Created by a completed Sunbit flow (checkout, text-to-pay, or
+    pre-qualification conversion) and keyed by a Sunbit-issued purchaseId. Mutated by void and
+    partial refund.
+  identified_by: purchaseId (Sunbit-issued)
+  alternate_key: transactionId / referral (integrator-issued)
+  fields:
+  - purchaseId
+  - transactionId
+  - purchaseAmount
+  - netPurchaseAmount
+  - changedAmount
+  - amount
+  - purchaseDate
+  - modificationDate
+  - status
+  - invoice
+  - roNumber
+  - referenceNumber
+  - merchantFeeAmount
+  - items (Item[])
+  - shippingAddress (ShippingAddress)
+  - isShippingToStore
+  states:
+  - COMPLETED
+  - INCOMPLETE
+  - VOIDED
+  report_states:
+  - APPROVED
+  - PURCHASED
+  - DECLINED
+  operations:
+  - POST /epay/api/v1/epay
+  - GET /epay/api/v1/epay
+  - PUT /epay/api/v1/epay/cancel/{purchaseId}
+  - PUT /epay/api/v1/epay/changeAmount/{purchaseId}
+  source: https://docs.sunbit.com/docs/transactions-management/transaction-lookup
+
+- name: Item
+  description: Line item optionally attached to a checkout initialization.
+  fields: [serialNumber, amount]
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+
+- name: RefundAdjustment
+  description: >-
+    A partial refund applied to a completed purchase. Not a standalone resource — it is a
+    mutation on Purchase that produces changedAmount and a TRANSACTION_REFUNDED event.
+  fields: [returnedAmount, reason, changedAmount]
+  reason_values:
+  - PARTIAL_REFUND
+  - ERROR_CORRECTION
+  source: https://docs.sunbit.com/docs/transactions-management/issue-refunds
+
+- name: PaymentLink
+  aka: [pre-qualification link, pay-over-time link]
+  description: >-
+    A tokenized URL sent to a customer. Returned by the pre-qualification and text-to-pay
+    endpoints; there is no endpoint to list, revoke, or inspect a link after issuance.
+  fields: [url, shortToken, longToken, retailerId]
+  source: https://docs.sunbit.com/docs/api-integrations/text-to-Pay-Over-Time-overtime
+
+- name: SummaryReport
+  description: Aggregated transaction metrics per location for a date window.
+  fields:
+  - location
+  - totalAmountOfPurchases
+  - numberOfPurchases
+  - numberOfApprovals
+  - numberOfDeclines
+  - approvalRate
+  - conversionRate
+  source: https://docs.sunbit.com/docs/reporting/transactions-summary-report
+
+- name: DetailedReport
+  description: Per-transaction report row.
+  fields: [location, customerId, dateTime, status, amount, fee]
+  source: https://docs.sunbit.com/docs/reporting/transactions-detailed-report
+
+- name: CustomerOfferHistory
+  description: >-
+    Per-application offer history row, including merchant org hierarchy (district/region
+    manager) not exposed anywhere else in the API.
+  fields:
+  - applicationDate
+  - locationName
+  - department
+  - districtManager
+  - regionManager
+  - representativeName
+  - purchaseId
+  - estimatedAvailableCredit
+  - cancellationDate
+  - customerName
+  - customerEmail
+  - customerPhone
+  - maxAmount
+  - purchaseAmount
+  - lastPurchaseDate
+  - amountUsed
+  - source
+  paginated: true
+  source: https://docs.sunbit.com/docs/reporting/customer-offer-history-report
+
+relationships:
+- from: Alliance
+  to: Location
+  type: has_many
+  via: location
+- from: Location
+  to: Alliance
+  type: belongs_to
+  via: sunbit-key credential
+- from: Location
+  to: Vertical
+  type: has_one
+  via: vertical
+- from: Location
+  to: Department
+  type: has_many
+  via: departmentId
+- from: Location
+  to: BusinessRepresentative
+  type: has_one
+  via: representativeDetails
+- from: Location
+  to: AddressDetails
+  type: has_one
+  via: businessAddress
+- from: Location
+  to: Purchase
+  type: has_many
+  via: location
+- from: Location
+  to: Offer
+  type: has_many
+  via: location
+- from: Purchase
+  to: Location
+  type: belongs_to
+  via: location
+- from: Purchase
+  to: Customer
+  type: has_one
+  via: customerDetails
+- from: Purchase
+  to: Representative
+  type: has_one
+  via: representativeEmail
+- from: Purchase
+  to: Item
+  type: has_many
+  via: items
+- from: Purchase
+  to: ShippingAddress
+  type: has_one
+  via: shippingAddress
+- from: Purchase
+  to: RefundAdjustment
+  type: has_many
+  via: purchaseId
+- from: Purchase
+  to: PaymentLink
+  type: has_one
+  via: transactionId
+- from: Offer
+  to: Customer
+  type: has_one
+  via: customerDetails
+- from: Offer
+  to: Purchase
+  type: has_one
+  via: purchaseId
+- from: Customer
+  to: AddressDetails
+  type: has_one
+  via: addressDetails
+- from: SummaryReport
+  to: Location
+  type: belongs_to
+  via: location
+- from: DetailedReport
+  to: Location
+  type: belongs_to
+  via: location
+- from: DetailedReport
+  to: Customer
+  type: belongs_to
+  via: customerId
+- from: CustomerOfferHistory
+  to: Location
+  type: belongs_to
+  via: locationName
+- from: CustomerOfferHistory
+  to: Purchase
+  type: has_one
+  via: purchaseId
+
+id_prefixes: none published
+id_formats:
+  purchaseId: opaque string; observed as numeric ("39325178") and hyphenated ("99-999-999")
+  location: integrator-assigned string
+  customerId: integer, read-only, only in the detailed report
+
+observations:
+- Customer is not an addressable resource — there is no GET /customer, and the only customer
+  identifier (customerId) appears solely in a report row.
+- Offer is not addressable either; it is only observable via webhook or report.
+- The same logical address is modelled twice with different field names (AddressDetails vs
+  ShippingAddress).
+- District/region manager hierarchy exists in the offer-history report but nowhere in the
+  onboarding model, so it cannot be set or read through the API.

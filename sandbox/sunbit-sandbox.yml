@@ -1,0 +1,200 @@
+generated: '2026-07-31'
+method: searched
+source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+docs:
+- https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- https://docs.sunbit.com/docs/overview/production-access
+note: >-
+  Every value below is published verbatim in Sunbit's own testing documentation. Nothing here
+  is invented. Sunbit's sandbox is host-separated (not key-prefix separated) and its failure
+  simulation is driven by magic PREFIXES on the caller-supplied transactionId rather than by
+  magic card numbers.
+
+separation:
+  model: separate hosts per environment
+  sandbox_host: https://api-sandbox.sunbit.com
+  production_host: https://api.sunbit.com
+  key_prefixes: none — sandbox and production credentials are distinct values with no
+    distinguishing prefix, so a mis-scoped key is not visually detectable
+  credentials:
+    sandbox: issued in the Sunbit Developers Portal (Keys tab)
+    production: >-
+      gated behind a "Request Production Access" button in the portal; Sunbit runs
+      verification and emails the team when production is enabled
+  access: not self-serve — a partner must be granted portal access by Sunbit
+
+sdk_modes:
+- mode: SANDBOX
+  default: true
+  description: >-
+    Default SDK mode. Simulates the checkout iframe and completion locally — NO calls are made
+    to Sunbit's servers. Intended for verifying the JavaScript integration and callbacks. Does
+    not yield a real purchaseId.
+- mode: DEMO
+  description: >-
+    Full flow simulation against Sunbit's demo environment. Required to obtain a real, working
+    purchaseId for end-to-end server testing before production.
+- mode: PROD
+  description: production
+init_example: |
+  SUNBIT.init({
+    sunbitKey: '<YOUR SUNBIT_KEY>',
+    mode: 'demo',
+    location: '<YOUR LOCATION NAME>'
+  });
+
+transaction_id_prefixes:
+  mechanism: >-
+    Prefix the caller-supplied transactionId with one of the tokens below (e.g.
+    COMPLETED_3423lgregr) to force a specific status or error from the sandbox. Prefixes must
+    be stripped before going to production.
+  checkout_status_simulation:
+    docs: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+    prefixes:
+    - prefix: COMPLETED
+      status_code: 200
+      result: Transaction COMPLETED successfully
+      example: COMPLETED_3423lgregr
+    - prefix: INCOMPLETE
+      status_code: 200
+      result: Transaction INCOMPLETE
+      example: INCOMPLETE_bre45ge3f
+    - prefix: VOIDED
+      status_code: 200
+      result: Transaction is VOIDED
+      example: VOIDED_ve3bbr
+    - prefix: BAD_CREDENTIALS
+      status_code: 403
+      result: Sunbit key or secret is wrong
+      example: BAD_CREDENTIALS_ve3bbr
+    - prefix: IP_NOT_ALLOWED
+      status_code: 403
+      result: IP address does not match the account
+      example: IP_NOT_ALLOWED_ve3bbr
+    - prefix: LOCATION_NOT_EXIST
+      status_code: 404
+      result: Provided location does not match the account
+      example: LOCATION_NOT_EXIST_ve3bbr
+    - prefix: DAILY_LIMIT
+      status_code: 422
+      result: Number of calls passed the daily limit
+      example: DAILY_LIMIT_ve3bbr
+    - prefix: LOW_AMOUNT
+      status_code: 422
+      result: Transaction amount should be greater than 0
+      example: LOW_AMOUNT_ve3bbr
+    - prefix: INTERNAL
+      status_code: 500
+      result: Something went wrong on Sunbit's side
+      example: INTERNAL_ve3bbr
+  validation_error_simulation:
+    docs: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+    applies_to: GET /epay/api/v1/epay
+    prefixes:
+    - prefix: TRANSACTION_NOT_ALLOWED
+      status_code: 403
+      result: Transaction id does not belong to an account
+      example: TRANSACTION_NOT_ALLOWED_ve3bbr
+    - prefix: PURCHASE_NOT_ALLOWED
+      status_code: 403
+      result: Purchase id does not belong to an account
+      example: PURCHASE_NOT_ALLOWED_ve3bbr
+    - prefix: BAD_CREDENTIALS
+      status_code: 403
+      result: Sunbit key or secret is wrong
+      example: BAD_CREDENTIALS_ve3bbr
+    - prefix: IP_NOT_ALLOWED
+      status_code: 403
+      result: IP address does not match an account
+      example: IP_NOT_ALLOWED_ve3bbr
+    - prefix: WRONG_PURCHASE
+      status_code: 422
+      result: The given purchaseId is not recognized as an existing purchase in the system
+      example: WRONG_PURCHASE_ve3bbr
+    - prefix: INTERNAL
+      status_code: 500
+      result: Something went wrong on Sunbit's side
+      example: INTERNAL_ve3bbr
+    example_request: |
+      curl 'https://api-sandbox.sunbit.com/epay/api/v1/epay?transactionId=BAD_CREDENTIALS_ve3bbr' \
+        -H 'sunbit-key: YOUR_KEY' \
+        -H 'sunbit-secret: YOUR_SECRET'
+    example_response: '{"message": "Bad credentials", "code": "forbidden"}'
+
+demo_test_values:
+  docs: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+  applies_to: SDK mode 'demo' (full flow simulation)
+  values:
+  - element: Phone number
+    value: any
+    note: text messages are not sent in demo mode
+  - element: Phone number
+    value: 212.555.9999
+    note: email-verified simulation
+  - element: Phone number
+    value: any previously used phone number
+    note: email-verified simulation; details entered previously are reloaded
+  - element: SMS pin code
+    value: '1234'
+    note: the default pin for SMS verification in demo
+  - element: Customer name, address, details
+    value: any
+    note: customer age must be 18 or older; SSN can be any value
+  - element: Email
+    value: any real address you can access
+    note: a verification email IS sent and must be verified to continue the flow
+  - element: Debit card and bank information
+    value: any
+    note: information is not stored in demo
+  caveats:
+  - Customer details are persisted in the demo environment keyed on phone number, so reusing a
+    phone number reloads the earlier details.
+  test_cards: none published — Sunbit is a lender, not a card acquirer, so there is no test
+    card table; the debit card captured in the flow is the customer's repayment instrument and
+    any value is accepted in demo.
+
+test_location:
+  value: sandbox
+  note: >-
+    "sandbox" is used as the location identifier in the published reporting examples; "test",
+    "retailer4" and "Location1" appear in other published request examples.
+
+webhook_testing:
+  docs: https://docs.sunbit.com/docs/webhooks/webhooks-setup
+  steps:
+  - Point the Webhook URL in the Developers Portal at a receiver such as webhook.site or ngrok.
+  - Fire a delivery with the test button in the portal, or by calling the pre-qualification /
+    merchant onboarding APIs.
+  - Copy the sunbit-signature header and payload from the receiver.
+  - Verify the HMAC-SHA256 signature per the Verify Webhook Signature guide.
+  sample_signature_secret: DwS3QStMkgKziZxd9NXcvqFkxP4JNA3i
+  sample_signature_header: t=1643444288,v1=e1bfa98d067faeea521387c8917b71c96e32e1f9028a3b0b2167c4c7408cdacb
+  sample_note: >-
+    Published in the docs as a worked HMAC example alongside a MERCHANT_CREATED payload; it is
+    documentation sample data, not a live credential.
+
+reporting_sandbox_constraint:
+  docs: https://docs.sunbit.com/docs/reporting/transactions-summary-report
+  note: >-
+    The reporting APIs do not support the current date. If fromDate/toDate include today, the
+    result is computed to yesterday (Today-1) — so a transaction created in sandbox will not
+    appear in a report until the following day.
+
+promotion_checklist:
+  server_side:
+  - Swap the host to https://api.sunbit.com
+  - Swap sunbit-key, sunbit-secret and location to production values
+  - Strip every sandbox simulation prefix from transactionIds
+  client_side:
+  - Change the SDK init mode to 'prod'
+  portal:
+  - Retrieve production keys from the Keys tab (they appear under the sandbox keys)
+  - Configure and test the production webhook URL under the Webhook keys
+  source: https://docs.sunbit.com/docs/overview/production-access
+
+gaps:
+- No self-serve sandbox — credentials require a Sunbit-granted portal account, so an
+  integrator (or an agent) cannot get a key without a sales conversation.
+- No test clocks or time simulation.
+- No published fixture/seed data beyond the demo-flow input values.
+- Sandbox and production keys share the same opaque format with no distinguishing prefix.

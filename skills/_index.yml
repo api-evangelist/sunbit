@@ -1,0 +1,58 @@
+generated: '2026-07-31'
+method: generated
+source: https://docs.sunbit.com/
+grounding: >-
+  Sunbit publishes no OpenAPI, so each skill's `operations` are the HTTP method + path exactly
+  as published in Sunbit's developer documentation rather than spec operationIds. Every path,
+  header, field, enum, error row and sandbox value used in these skills was transcribed from
+  docs.sunbit.com; nothing was invented. Sunbit publishes no AGENTS.md or provider-authored
+  skills — searched and none found.
+skills:
+- file: sunbit-prequalify-customer.md
+  name: Pre-qualify a Sunbit customer
+  api: Sunbit Partner API
+  operations:
+  - PUT /purchase/api/v1/online-link
+  - GET /epay/api/v1/epay
+  docs: https://docs.sunbit.com/docs/api-integrations/sunbit-pre-qualification
+- file: sunbit-checkout-transaction.md
+  name: Take a Sunbit checkout payment
+  api: Sunbit Partner API
+  operations:
+  - POST /epay/api/v1/epay
+  - GET /epay/api/v1/epay
+  docs: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- file: sunbit-void-and-refund.md
+  name: Void or partially refund a Sunbit transaction
+  api: Sunbit Partner API
+  operations:
+  - GET /epay/api/v1/epay
+  - PUT /epay/api/v1/epay/cancel/{purchaseId}
+  - PUT /epay/api/v1/epay/changeAmount/{purchaseId}
+  docs: https://docs.sunbit.com/docs/transactions-management/void-transactions
+- file: sunbit-onboard-merchant.md
+  name: Onboard a merchant location to Sunbit
+  api: Sunbit Partner API
+  operations:
+  - POST /onboarding/api/v1/location
+  - GET /onboarding/api/v1/location/{location}
+  docs: https://docs.sunbit.com/docs/onboarding/adding-new-location
+- file: sunbit-verify-webhook-signature.md
+  name: Verify a Sunbit webhook signature
+  api: Sunbit Partner API
+  operations:
+  - POST <your-webhook-url>
+  docs: https://docs.sunbit.com/docs/webhooks/webhooks-verify-signature
+not_covered:
+- flow: Sunbit Estimate ("As Low As")
+  operation: PUT /purchase/api/v1/payment-estimation
+  reason: single stateless call, fully covered by conventions/ and components/
+- flow: Text to Pay-Over-Time
+  operation: POST /epay/api/v1/epay/send-link
+  reason: same shape as pre-qualification; see that skill plus the TEXT_TO_PAY_* events
+- flow: Reporting
+  operations:
+  - GET /reports/api/v1/summary
+  - GET /reports/api/v1/detailed
+  - GET /reports/api/v1/customer-offer-history
+  reason: read-only, and the offer-history endpoint is IP-allowlisted per integrator

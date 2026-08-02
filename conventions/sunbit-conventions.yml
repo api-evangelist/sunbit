@@ -1,0 +1,293 @@
+generated: '2026-07-31'
+method: searched
+source: https://docs.sunbit.com/docs/overview/overview
+docs: https://docs.sunbit.com/
+note: >-
+  Cross-cutting request/response semantics read from Sunbit's published developer
+  documentation. Sunbit publishes no OpenAPI, so every convention below is taken verbatim
+  from the docs pages cited on each section. Where a convention is absent, that absence is
+  recorded rather than inferred.
+
+authentication:
+  style: paired header credentials
+  headers:
+  - sunbit-key
+  - sunbit-secret
+  bearer_variants:
+  - per-transaction checkout JWT (SUNBIT.epay.checkout token)
+  - Payment Path merchant bearer token with expiresAt
+  detail: authentication/sunbit-authentication.yml
+
+environments:
+  scheme: separate hosts per environment (not key-prefix based)
+  sandbox: https://api-sandbox.sunbit.com
+  production: https://api.sunbit.com
+  sdk_modes:
+  - SANDBOX
+  - DEMO
+  - PROD
+  migration: >-
+    Moving to production means swapping the host, swapping sunbit-key/sunbit-secret/location
+    to production values, removing any sandbox transactionId simulation prefixes, and changing
+    the SDK init mode to 'prod'.
+  source: https://docs.sunbit.com/docs/overview/production-access
+
+idempotency:
+  supported: false
+  idempotency_key_header: null
+  detail: >-
+    Sunbit documents no Idempotency-Key header and no retry-safety contract. The closest
+    construct is `transactionId` (also surfaced as `referral` / `referenceId`), an
+    integrator-supplied external identifier carried through initialization, validation, void,
+    refund and the matching webhook. It is a correlation key used to match a webhook back to
+    the originating request and to look a transaction up later — the docs never state that
+    replaying a request with the same transactionId is safe or deduplicated. Treat writes
+    (checkout initialization, send-link, void, changeAmount, onboarding) as non-idempotent
+    and reconcile with GET /epay/api/v1/epay before retrying.
+  correlation_key:
+    field: transactionId
+    aliases:
+    - referral
+    - referenceId
+    - ro
+    scope: per integrator, supplied by the caller
+    used_for:
+    - matching an asynchronous webhook to the originating request
+    - looking a transaction up without a Sunbit purchaseId
+    - void and partial-refund request bodies
+  conflict_behavior:
+    endpoint: POST /onboarding/api/v1/location
+    status: 409
+    message: Conflict — same location was already added for this alliance
+    note: >-
+      The only documented duplicate-detection behaviour in the API. Re-onboarding an existing
+      location is rejected rather than being treated as a no-op success.
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+
+pagination:
+  supported: partial
+  style: zero-based page/size (Spring Data Pageable envelope)
+  applies_to:
+  - GET /reports/api/v1/customer-offer-history
+  request_params:
+  - name: page
+    in: query
+    default: 0
+    description: zero-based page number
+  - name: size
+    in: query
+    default: 200
+    description: items per page
+  response_fields:
+  - content
+  - pageable.pageNumber
+  - pageable.pageSize
+  - first
+  - last
+  - totalPages
+  - totalElements
+  - size
+  - numberOfElements
+  - empty
+  not_paginated:
+  - GET /reports/api/v1/summary
+  - GET /reports/api/v1/detailed
+  note: >-
+    Only the Customer Offer History report is paginated. The summary and detailed reports
+    return an unbounded records[]/content[] array with no page controls and no documented cap.
+  source: https://docs.sunbit.com/docs/reporting/customer-offer-history-report
+
+filtering:
+  style: date-window in the request body on GET operations
+  params:
+  - name: fromDate
+    format: YYYY-MM-DD
+    required: true
+  - name: toDate
+    format: YYYY-MM-DD
+    required: true
+  - name: location
+    required: false
+    description: omit to return every location belonging to the partner
+  constraints:
+  - >-
+      Reporting APIs do not support the current date; if the window includes today the result
+      is computed to yesterday (Today-1).
+  - >-
+      Customer Offer History requires both fromDate and toDate to fall within the past 28 days.
+  quirk: >-
+    GET /reports/api/v1/summary, /detailed and /customer-offer-history are documented as GET
+    requests that carry a JSON request body — a non-standard shape that breaks clients and
+    proxies which strip bodies from GET.
+  source: https://docs.sunbit.com/docs/reporting/transactions-summary-report
+
+field_expansion:
+  supported: false
+  note: no expand / fields / sparse-fieldset parameter is documented
+
+metadata:
+  supported: false
+  note: >-
+    No free-form metadata object. Integrator context is carried through fixed named fields —
+    transactionId, referral, ro, location, departmentId, sourcePlatform, representativeEmail,
+    representativeFirstName, representativeLastName, invoice, referenceNumber — which are
+    echoed back on the corresponding webhook.
+
+request_tracing:
+  request_id_header: null
+  supported: false
+  note: >-
+    No request-id or correlation-id response header is documented. Tracing across a Sunbit
+    flow relies on the caller-supplied transactionId/referral and on Sunbit's purchaseId.
+
+identifiers:
+  purchaseId:
+    issuer: Sunbit
+    description: >-
+      Generated by Sunbit on a successful flow, returned to the SDK callbacks and on every
+      transaction webhook. It is the key for transaction lookup, void and refund.
+    nullable_when: status is INCOMPLETE (the Sunbit flow never started)
+    format: opaque string; observed as both numeric ("39325178") and hyphenated ("99-999-999")
+  transactionId:
+    issuer: integrator
+    description: caller's internal identifier, echoed on webhooks
+  location:
+    issuer: integrator, registered with Sunbit
+    description: >-
+      Store ID, store name, or any other unique identifier of a merchant location. It is the
+      tenancy key across the whole API — onboarding, prequal, estimate, checkout, reporting.
+  id_prefixes: none published
+
+versioning:
+  scheme: uri-path
+  pattern: /<service>/api/v<n>/<resource>
+  current:
+  - purchase/api/v1
+  - epay/api/v1
+  - onboarding/api/v1
+  - reports/api/v1
+  - alliance/api/v1
+  - developers-portal-service/api/v2
+  header_versioning: false
+  date_versioning: false
+  note: >-
+    The path version has not moved for the documented surface; breaking-ish changes have
+    instead been shipped as field renames with a dated upgrade deadline (see
+    lifecycle/sunbit-lifecycle.yml).
+
+error_envelope:
+  format: proprietary JSON
+  rfc9457: false
+  content_type: application/json
+  shapes:
+  - name: short form
+    fields:
+    - message
+    - code
+    example: '{"message": "Bad credentials", "code": "forbidden"}'
+    seen_on: epay validation
+  - name: long form
+    fields:
+    - code
+    - message
+    - description
+    example: >-
+      {"code": "UNAUTHORIZED", "message": "Authentication Failed", "description": "Failed to
+      authenticate the organization for the integration."}
+    seen_on: POST /alliance/api/v1/merchant-authentication
+  note: >-
+    Two different envelopes are documented across the surface and the `code` field is
+    inconsistently cased (lowercase "forbidden" vs SCREAMING_SNAKE "UNAUTHORIZED"). There is
+    no problem `type` URI and no application/problem+json.
+  catalog: errors/sunbit-problem-types.yml
+
+status_code_usage:
+  '400': malformed or missing required input (onboarding, merchant-authentication)
+  '401': credential pair does not match any alliance (onboarding, merchant-authentication)
+  '403': >-
+    used for BOTH bad credentials and authorization failures (unknown purchaseId/transactionId
+    for the account, IP not allowlisted, account disabled) — 403 rather than 401 is the
+    dominant auth-failure code across the older services
+  '404': location or retailer not found
+  '409': location already onboarded for this alliance
+  '422': >-
+    semantic rejections — unsupported vertical, unsupported state, invalid phone/email,
+    amount not greater than zero, expired pre-qualification reference, daily limit exceeded
+  '500': Sunbit-side failure
+  inconsistency: >-
+    Credential failures return 401 on /onboarding and /alliance but 403 on /epay,
+    /purchase and /reports. Clients must treat both as authentication failures.
+
+rate_limiting:
+  published_limits: false
+  headers: none documented
+  retry_after: not documented
+  known_controls:
+  - control: daily call cap per sunbit-key
+    surfaced_as: '422 "Number of epays for sunbitKey: [sunbitKey] passed the daily limit"'
+    value_published: false
+    sandbox_trigger: prefix the transactionId with DAILY_LIMIT_
+  note: >-
+    A per-key daily cap on checkout initialization demonstrably exists (it has a dedicated
+    error and a sandbox simulation prefix) but Sunbit does not publish the numeric limit and
+    returns no rate-limit headers, so a client cannot see how close it is to the cap.
+
+data_formats:
+  content_type: application/json
+  accept: application/json;charset=UTF-8
+  currency: USD only
+  amounts: numbers, up to 2 decimals
+  dates:
+  - YYYY-MM-DD (report windows, dateOfBirth, validUntil, creationDate)
+  - YYYY-MM-DD HH:MM:SS (webhook purchaseDate, modificationDate)
+  - "YYYY-MM-DD'T'hh:mm:ss (transaction lookup purchaseDate, detailed report dateTime)"
+  timezone:
+    param: timeZone
+    default: America/Los_Angeles
+    applies_to: PUT /purchase/api/v1/payment-estimation
+  quirk: >-
+    Three different datetime serializations are used across the surface, and webhook numeric
+    fields are inconsistently typed — approvalAmount/purchaseAmount arrive as strings on some
+    events and numbers on others.
+
+sentinel_values:
+  - value: -1
+    fields:
+    - monthlyAmount
+    - amountFinanced
+    - downPayment
+    - apr
+    endpoint: PUT /purchase/api/v1/payment-estimation
+    meaning: >-
+      The submitted amount is not financeable. Sunbit signals ineligibility with a -1 sentinel
+      in every numeric field rather than an error status or a null, so clients must special-case
+      it before rendering an "As Low As" figure.
+  - value: '""'
+    fields:
+    - customerEmail
+    - customerPhone
+    endpoint: GET /reports/api/v1/customer-offer-history
+    meaning: >-
+      Documented as "Always returns an empty string" — PII fields are present in the schema but
+      permanently redacted in the response.
+
+async_delivery:
+  mechanism: webhooks
+  transport: HTTP POST to a partner-configured URL
+  signature: HMAC-SHA256, Sunbit-Signature header
+  configuration: developer portal, per environment (sandbox / production)
+  retries: not documented
+  ordering: not documented
+  replay_protection: >-
+    Signature carries a unix timestamp; the docs recommend the integrator reject payloads whose
+    timestamp is more than ~5 minutes old.
+  catalog: asyncapi/sunbit-webhooks.yml
+
+cross_links:
+  authentication: authentication/sunbit-authentication.yml
+  errors: errors/sunbit-problem-types.yml
+  lifecycle: lifecycle/sunbit-lifecycle.yml
+  sandbox: sandbox/sunbit-sandbox.yml
+  webhooks: asyncapi/sunbit-webhooks.yml
+  data_model: data-model/sunbit-data-model.yml
+  components: components/sunbit-components.yml

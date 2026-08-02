@@ -1,0 +1,163 @@
+generated: '2026-07-31'
+method: searched
+source: https://docs.sunbit.com/
+note: >-
+  Assembled from Sunbit's published developer documentation and a live probe of the status
+  page. Where Sunbit publishes no policy, that is recorded as absent rather than inferred.
+
+versioning:
+  scheme: uri-path
+  pattern: /<service>/api/v<n>/<resource>
+  services:
+  - service: purchase
+    version: v1
+    operations:
+    - PUT /purchase/api/v1/online-link
+    - PUT /purchase/api/v1/payment-estimation
+  - service: epay
+    version: v1
+    operations:
+    - POST /epay/api/v1/epay
+    - GET /epay/api/v1/epay
+    - POST /epay/api/v1/epay/send-link
+    - PUT /epay/api/v1/epay/cancel/{purchaseId}
+    - PUT /epay/api/v1/epay/changeAmount/{purchaseId}
+  - service: onboarding
+    version: v1
+    operations:
+    - POST /onboarding/api/v1/location
+    - GET /onboarding/api/v1/location/{location}
+  - service: reports
+    version: v1
+    operations:
+    - GET /reports/api/v1/summary
+    - GET /reports/api/v1/detailed
+    - GET /reports/api/v1/customer-offer-history
+  - service: alliance
+    version: v1
+    operations:
+    - POST /alliance/api/v1/merchant-authentication
+  - service: developers-portal-service
+    version: v2
+    operations:
+    - POST /developers-portal-service/api/v2/auth/login-link
+  header_versioning: false
+  date_versioning: false
+  docs: null
+  note: >-
+    There is no published versioning policy page. The path version is the only version signal
+    and it has not moved for the documented surface; only developers-portal-service is at v2.
+
+deprecation:
+  policy_url: null
+  policy_published: false
+  sunset_header: false
+  deprecation_header: false
+  rfc8594: false
+  mechanism: >-
+    Sunbit has no deprecation policy page and emits no Sunset/Deprecation response headers.
+    Deprecations are announced as inline "Important" callouts on the affected documentation
+    page, naming the replacement field and a hard upgrade deadline. Because they are announced
+    only in prose, a client has no runtime signal that it is calling a deprecated shape.
+  notices:
+  - change: request field rename
+    from: advisorEmail
+    to: representativeEmail
+    scope: all APIs and SDKs (pre-qualification, text to pay-over-time, checkout SDK)
+    deadline: '2022-12-31'
+    rationale: consistency across all APIs and SDKs
+    sources:
+    - https://docs.sunbit.com/docs/api-integrations/sunbit-pre-qualification
+    - https://docs.sunbit.com/docs/api-integrations/text-to-Pay-Over-Time-overtime
+    - https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+    - https://docs.sunbit.com/docs/webhooks/checkout-sdk
+    - https://docs.sunbit.com/docs/webhooks/webhooks-text-to-pay-over-time
+    - https://docs.sunbit.com/docs/webhooks/webhooks-transactions-voided-and-refunded
+  - change: webhook payload field deprecated
+    field: associateName
+    replacement: representativeName
+    deadline: '2022-12-31'
+    scope: TEXT_TO_PAY_* and CHECKOUT_SDK_* webhook payloads
+    status: >-
+      still documented in the current payload tables and still present in the published
+      examples well past the stated deadline
+    sources:
+    - https://docs.sunbit.com/docs/webhooks/webhooks-text-to-pay-over-time
+    - https://docs.sunbit.com/docs/webhooks/checkout-sdk
+  - change: webhook payload field deprecated
+    field: advisorName
+    replacement: representativeName
+    scope: TRANSACTION_VOIDED / TRANSACTION_REFUNDED webhook payloads
+    source: https://docs.sunbit.com/docs/webhooks/webhooks-transactions-voided-and-refunded
+  deprecated_operations: []
+
+change_log:
+  published: false
+  url: null
+  note: >-
+    Sunbit publishes no dated changelog or release notes for the partner API. The docs site
+    (docs.sunbit.com) is a Docusaurus build with a /blog route configured but no posts, and it
+    is served with meta robots noindex,nofollow. There is no RSS/Atom feed for API changes and
+    no version history, so a partner learns about a change only by re-reading the docs.
+
+status_page:
+  url: https://status.sunbit.com/
+  provider: Atlassian Statuspage
+  page_id: 0hhnmgdmfcjt
+  api: https://status.sunbit.com/api/v2/summary.json
+  probed: '2026-07-31'
+  http_status: 200
+  indicator_at_probe: none (All Systems Operational)
+  components:
+  - Sunbit iOS App
+  - Sunbit Online Checkout
+  - Sunbit On-the-Go
+  - Sunbit Pre-Qualification
+  - My Sunbit
+  - Partner Portal
+  - Services Portal
+  - Sunbit Rewards
+  - Sunbit Card
+  note: >-
+    The status page tracks nine consumer- and merchant-facing products. It does NOT break out
+    the partner API services by name (epay, purchase, onboarding, reports, alliance), so an
+    integrator cannot map an API failure to a component.
+
+sla:
+  url: null
+  uptime_target: not published
+  note: >-
+    No public SLA, uptime commitment, or historical uptime figure. Statuspage exposes incident
+    history but no availability target.
+
+roadmap:
+  url: null
+  published: false
+
+support:
+  partner_support_email: partnersupport@sunbit.com
+  contact_page: https://sunbit.com/contact-us/
+  customer_service: https://sunbit.com/im-a-consumer/customer-service/
+  developer_portal: https://developers.sunbit.com/
+  note: >-
+    Developer support is relationship-based — there is no public forum, community, issue
+    tracker, or Slack/Discord.
+
+availability_constraints:
+  geography: United States only
+  excluded:
+  - U.S. territories (all verticals)
+  - West Virginia (Home Services vertical)
+  data_prefill_restrictions:
+  - >-
+      Business information for Dental and Healthcare merchants/customers located in CA, NY and
+      IL is not pre-filled.
+  currency: USD only
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+
+gaps:
+- No changelog, no release notes, no versioning policy, and no roadmap.
+- No deprecation policy and no Sunset/Deprecation headers — deprecations are prose-only, and
+  at least two announced with a 2022-12-31 deadline are still in the current docs.
+- No SLA or uptime target.
+- The status page does not decompose the partner API into observable components.

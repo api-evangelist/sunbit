@@ -1,0 +1,117 @@
+generated: '2026-07-31'
+method: searched
+source: live probes of every Sunbit host found in apis.yml and the developer docs
+notes: >-
+  Probed /.well-known/security.txt, /openid-configuration, /oauth-authorization-server,
+  /api-catalog, /ai-plugin.json, /agent-card.json and /agent.json on every host. Only
+  sunbit.com serves a real /.well-known document. developers.sunbit.com, docs.sunbit.com,
+  dashboard.sunbit.com and merchant-onboarding.sunbit.com are single-page apps whose
+  catch-all route answers HTTP 200 with an HTML shell for every /.well-known/* path —
+  those 200s are NOT documents and are recorded as false positives, not hits.
+  api.sunbit.com and api-sandbox.sunbit.com return a blanket 403 text/plain "Forbidden"
+  from the edge for every unauthenticated path.
+hosts:
+- host: https://sunbit.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 200
+    content_type: text/plain
+    file: sunbit-security.txt
+  - path: /.well-known/openid-configuration
+    status: 404
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+  - path: /.well-known/api-catalog
+    status: 404
+  - path: /.well-known/ai-plugin.json
+    status: 404
+  - path: /.well-known/agent-card.json
+    status: 404
+  - path: /.well-known/agent.json
+    status: 404
+  - path: /llms.txt
+    status: 404
+  - path: /pgp-key.txt
+    status: 200
+    note: encryption key referenced by security.txt
+- host: https://api.sunbit.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 403
+  - path: /.well-known/openid-configuration
+    status: 403
+  - path: /.well-known/oauth-authorization-server
+    status: 403
+  - path: /.well-known/api-catalog
+    status: 403
+  - path: /.well-known/agent-card.json
+    status: 403
+  - path: /.well-known/agent.json
+    status: 403
+  note: edge returns 403 text/plain "Forbidden" for all unauthenticated paths
+- host: https://api-sandbox.sunbit.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 403
+  - path: /.well-known/agent-card.json
+    status: 403
+  - path: /.well-known/agent.json
+    status: 403
+  note: edge returns 403 text/plain "Forbidden" for all unauthenticated paths
+- host: https://docs.sunbit.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 200
+    hit: false
+    reason: docusaurus SPA catch-all returns text/html for every path
+  - path: /.well-known/agent-card.json
+    status: 200
+    hit: false
+    reason: docusaurus SPA catch-all returns text/html for every path
+  - path: /.well-known/agent.json
+    status: 200
+    hit: false
+    reason: docusaurus SPA catch-all returns text/html for every path
+  - path: /llms.txt
+    status: 200
+    hit: false
+    reason: docusaurus SPA catch-all returns text/html for every path
+- host: https://developers.sunbit.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 200
+    hit: false
+    reason: create-react-app SPA catch-all returns text/html for every path
+  - path: /.well-known/agent-card.json
+    status: 200
+    hit: false
+    reason: create-react-app SPA catch-all returns text/html for every path
+  - path: /.well-known/agent.json
+    status: 200
+    hit: false
+    reason: create-react-app SPA catch-all returns text/html for every path
+- host: https://dashboard.sunbit.com
+  documents:
+  - path: /.well-known/agent-card.json
+    status: 200
+    hit: false
+    reason: SPA catch-all returns text/html for every path
+- host: https://merchant-onboarding.sunbit.com
+  documents:
+  - path: /.well-known/agent-card.json
+    status: 200
+    hit: false
+    reason: SPA catch-all returns text/html for every path
+- host: https://static.sunbit.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 403
+  note: S3/CloudFront origin, returns an XML AccessDenied error
+summary:
+  documents_found: 1
+  security_txt: true
+  openid_configuration: false
+  oauth_authorization_server: false
+  api_catalog: false
+  ai_plugin: false
+  agent_card: false

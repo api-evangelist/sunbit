@@ -1,0 +1,356 @@
+generated: '2026-07-31'
+method: searched
+source: https://docs.sunbit.com/
+format: proprietary
+rfc9457: false
+note: >-
+  Sunbit publishes an Errors table on each API reference page rather than a single error
+  registry, and publishes no OpenAPI. Every row below is transcribed verbatim from the
+  Errors section of the cited documentation page. Sunbit does not use
+  application/problem+json and emits no problem `type` URI, so there is no RFC 9457 type to
+  record — the identity of an error is the (status, message) pair, and on the newer
+  /alliance service a SCREAMING_SNAKE `code`.
+
+envelopes:
+- name: short
+  fields: [message, code]
+  example: '{"message": "Bad credentials", "code": "forbidden"}'
+- name: long
+  fields: [code, message, description]
+  example: >-
+    {"code": "UNAUTHORIZED", "message": "Authentication Failed", "description": "Failed to
+    authenticate the organization for the integration."}
+
+problems:
+
+# --- Pre-Qualification: PUT /purchase/api/v1/online-link
+- status: 403
+  title: Bad credentials
+  detail: Sunbit key or secret is not valid
+  operation: PUT /purchase/api/v1/online-link
+  remediation: Verify sunbit-key/sunbit-secret and that they match the environment host in use.
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-pre-qualification
+- status: 404
+  title: Not Found
+  detail: Retailer mapped to a given alliance and location is not found
+  operation: PUT /purchase/api/v1/online-link
+  remediation: Confirm the location identifier was onboarded and activated for this alliance.
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-pre-qualification
+- status: 422
+  title: Unprocessable entity
+  detail: Missing onlineApplication for retailer
+  operation: PUT /purchase/api/v1/online-link
+  remediation: Contact Sunbit — the retailer is not provisioned for the online application flow.
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-pre-qualification
+- status: 422
+  title: Unprocessable entity
+  detail: Disabled onlineApplication for retailer
+  operation: PUT /purchase/api/v1/online-link
+  remediation: Contact Sunbit — the retailer's online application has been disabled.
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-pre-qualification
+- status: 500
+  title: Internal Server Error
+  detail: Something went wrong on Sunbit's side
+  operation: PUT /purchase/api/v1/online-link
+  remediation: Retry with backoff; escalate to partnersupport@sunbit.com if persistent.
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-pre-qualification
+
+# --- Sunbit Estimate: PUT /purchase/api/v1/payment-estimation
+- status: 403
+  title: Bad credentials
+  detail: Sunbit key or secret is not valid
+  operation: PUT /purchase/api/v1/payment-estimation
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-estimate
+- status: 422
+  title: LocationNotFound
+  detail: Location is required for multiple-vertical alliance
+  operation: PUT /purchase/api/v1/payment-estimation
+  remediation: Send the location query parameter — it is only optional for single-vertical alliances.
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-estimate
+- status: 422
+  title: LocationNotFound
+  detail: Location not found for alliance
+  operation: PUT /purchase/api/v1/payment-estimation
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-estimate
+- status: 422
+  title: LocationNotFound
+  detail: Alliance vertical not found
+  operation: PUT /purchase/api/v1/payment-estimation
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-estimate
+- status: 500
+  title: Internal Server Error
+  detail: Something went wrong on Sunbit's side
+  operation: PUT /purchase/api/v1/payment-estimation
+  source: https://docs.sunbit.com/docs/api-integrations/sunbit-estimate
+
+# --- Text to Pay-Over-Time: POST /epay/api/v1/epay/send-link
+- status: 403
+  title: Provided alliance is not allowed
+  detail: sunbit-key provided is not associated with the retailer
+  operation: POST /epay/api/v1/epay/send-link
+  source: https://docs.sunbit.com/docs/api-integrations/text-to-Pay-Over-Time-overtime
+- status: 404
+  title: Location does not exist
+  detail: Location provided is not associated with the retailer
+  operation: POST /epay/api/v1/epay/send-link
+  source: https://docs.sunbit.com/docs/api-integrations/text-to-Pay-Over-Time-overtime
+- status: 422
+  title: Invalid phone number
+  detail: Invalid US phone number
+  operation: POST /epay/api/v1/epay/send-link
+  remediation: >-
+    phoneNumber is required when sendSMS is true and must be a valid US number; Sunbit is
+    US-only.
+  source: https://docs.sunbit.com/docs/api-integrations/text-to-Pay-Over-Time-overtime
+- status: 422
+  title: Email address is not valid
+  detail: Invalid representative email address
+  operation: POST /epay/api/v1/epay/send-link
+  source: https://docs.sunbit.com/docs/api-integrations/text-to-Pay-Over-Time-overtime
+- status: 500
+  title: Internal Server Error
+  detail: Missing location attribute or something went wrong on Sunbit's side
+  operation: POST /epay/api/v1/epay/send-link
+  note: >-
+    A missing required `location` is documented as returning 500 rather than 400/422 — a
+    caller-side validation error surfaced as a server error.
+  source: https://docs.sunbit.com/docs/api-integrations/text-to-Pay-Over-Time-overtime
+
+# --- Checkout initialization: POST /epay/api/v1/epay
+- status: 403
+  title: Bad credentials
+  detail: Sunbit key or secret is wrong
+  operation: POST /epay/api/v1/epay
+  sandbox_trigger: BAD_CREDENTIALS_ transactionId prefix
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- status: 403
+  title: IP address is not allowed for this sunbitKey
+  detail: IP address does not match account
+  operation: POST /epay/api/v1/epay
+  remediation: Register the calling server's egress IP with Sunbit.
+  sandbox_trigger: IP_NOT_ALLOWED_ transactionId prefix
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- status: 404
+  title: Location does not exist
+  detail: Provided location does not match account
+  operation: POST /epay/api/v1/epay
+  sandbox_trigger: LOCATION_NOT_EXIST_ transactionId prefix
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- status: 422
+  title: 'Number of epays for sunbitKey: [sunbitKey] passed the daily limit'
+  detail: Number of calls passed the daily limit
+  operation: POST /epay/api/v1/epay
+  remediation: >-
+    A per-key daily cap on checkout initialization. The numeric limit is not published and no
+    rate-limit headers are returned; contact Sunbit to raise it.
+  sandbox_trigger: DAILY_LIMIT_ transactionId prefix
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- status: 422
+  title: Amount should be greater than 0
+  detail: Transaction amount should be greater than 0
+  operation: POST /epay/api/v1/epay
+  sandbox_trigger: LOW_AMOUNT_ transactionId prefix
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- status: 422
+  title: Customer reference number is invalid
+  detail: Reference number for the pre-qualification process is invalid or expired
+  operation: POST /epay/api/v1/epay
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- status: 422
+  title: Email address is not valid
+  detail: Invalid representative email address
+  operation: POST /epay/api/v1/epay
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- status: 500
+  title: Internal Server Error
+  detail: Something went wrong on Sunbit's side
+  operation: POST /epay/api/v1/epay
+  sandbox_trigger: INTERNAL_ transactionId prefix
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+
+# --- Transaction lookup / validation: GET /epay/api/v1/epay
+- status: 403
+  title: Forbidden purchaseId / transactionId
+  detail: Transaction / purchase id does not belong to account
+  operation: GET /epay/api/v1/epay
+  sandbox_trigger: TRANSACTION_NOT_ALLOWED_ / PURCHASE_NOT_ALLOWED_ transactionId prefix
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- status: 403
+  title: Bad credentials
+  detail: Sunbit key or secret is wrong
+  operation: GET /epay/api/v1/epay
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- status: 403
+  title: IP address is not allowed for this sunbitKey
+  detail: IP address does not match account
+  operation: GET /epay/api/v1/epay
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- status: 422
+  title: Wrong purchase
+  detail: The given purchaseId is not recognized as an existing purchase in the system
+  operation: GET /epay/api/v1/epay
+  sandbox_trigger: WRONG_PURCHASE_ transactionId prefix
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+- status: 500
+  title: Internal Server Error
+  detail: Something went wrong on Sunbit's side
+  operation: GET /epay/api/v1/epay
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+
+# --- Merchant onboarding: POST /onboarding/api/v1/location
+- status: 400
+  title: Bad Request
+  detail: Missing or invalid input, or sendSMS is true but no representative phone number provided
+  operation: POST /onboarding/api/v1/location
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+- status: 401
+  title: Unauthorized
+  detail: sunbit-key and/or sunbit-secret do not match any alliance credentials
+  operation: POST /onboarding/api/v1/location
+  note: >-
+    The onboarding service returns 401 for credential failure where /epay, /purchase and
+    /reports return 403 for the same condition.
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+- status: 409
+  title: Conflict
+  detail: Same location was already added for this alliance
+  operation: POST /onboarding/api/v1/location
+  remediation: >-
+    Onboarding is not idempotent — call GET /onboarding/api/v1/location/{location} to read the
+    existing application instead of re-posting.
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+- status: 422
+  title: Unprocessable Entity
+  detail: Vertical parameter is not supported
+  operation: POST /onboarding/api/v1/location
+  remediation: >-
+    vertical must be one of the 14 published values (Car_Dealerships, Car_Services, Veterinary,
+    Motorsports_Parts_and_Services, Dental, Eyewear, Home_Services, Med_Spa, Bridal,
+    General_Retail, Jewelry_and_Watches, Legal_Services, Medical_Office, Hospital_Health_System).
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+- status: 422
+  title: Unprocessable Entity
+  detail: State is not supported
+  operation: POST /onboarding/api/v1/location
+  remediation: >-
+    Sunbit is unavailable in U.S. territories, and in WV for Home Services.
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+- status: 500
+  title: Internal Server Error
+  detail: Something went wrong on Sunbit's side
+  operation: POST /onboarding/api/v1/location
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+
+# --- Merchant status: GET /onboarding/api/v1/location/{location}
+- status: 401
+  title: Unauthorized
+  detail: sunbit-key and/or sunbit-secret do not match any alliance credentials
+  operation: GET /onboarding/api/v1/location/{location}
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+- status: 404
+  title: Resource Not Found
+  detail: Location was not found
+  operation: GET /onboarding/api/v1/location/{location}
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+- status: 422
+  title: State Not Supported
+  detail: Merchant is operating in an unsupported State
+  operation: GET /onboarding/api/v1/location/{location}
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+- status: 500
+  title: Internal Server Error
+  detail: Something went wrong on Sunbit's side
+  operation: GET /onboarding/api/v1/location/{location}
+  source: https://docs.sunbit.com/docs/onboarding/adding-new-location
+
+# --- Embedded portal: POST /developers-portal-service/api/v2/auth/login-link
+- status: 403
+  title: Bad credentials
+  detail: Sunbit key or secret is not valid
+  operation: POST /developers-portal-service/api/v2/auth/login-link
+  source: https://docs.sunbit.com/docs/api-integrations/embedded-portal
+- status: 422
+  title: LocationNotFound
+  detail: Location is required for multiple-vertical alliance
+  operation: POST /developers-portal-service/api/v2/auth/login-link
+  source: https://docs.sunbit.com/docs/api-integrations/embedded-portal
+- status: 422
+  title: LocationNotFound
+  detail: Location not found for alliance
+  operation: POST /developers-portal-service/api/v2/auth/login-link
+  source: https://docs.sunbit.com/docs/api-integrations/embedded-portal
+- status: 422
+  title: LocationNotFound
+  detail: Alliance vertical not found
+  operation: POST /developers-portal-service/api/v2/auth/login-link
+  source: https://docs.sunbit.com/docs/api-integrations/embedded-portal
+- status: 500
+  title: Internal Server Error
+  detail: Something went wrong on Sunbit's side
+  operation: POST /developers-portal-service/api/v2/auth/login-link
+  source: https://docs.sunbit.com/docs/api-integrations/embedded-portal
+
+# --- Payment Path merchant authentication: POST /alliance/api/v1/merchant-authentication
+- status: 400
+  code: BAD_REQUEST
+  title: Missing required authentication headers
+  detail: The request is missing sunbit-key or sunbit-secret headers
+  operation: POST /alliance/api/v1/merchant-authentication
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-payment-path
+- status: 400
+  code: BAD_REQUEST
+  title: Missing required location in authentication request
+  detail: The request body is missing the required location field
+  operation: POST /alliance/api/v1/merchant-authentication
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-payment-path
+- status: 401
+  code: UNAUTHORIZED
+  title: Authentication Failed
+  detail: The provided sunbit-key and sunbit-secret combination is invalid
+  operation: POST /alliance/api/v1/merchant-authentication
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-payment-path
+- status: 403
+  code: FORBIDDEN
+  title: Account Disabled
+  detail: The organization account is disabled and cannot access the integration
+  operation: POST /alliance/api/v1/merchant-authentication
+  source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-payment-path
+
+# --- Reporting: /reports/api/v1/*
+- status: 403
+  title: Bad Credentials
+  detail: sunbit-key and/or sunbit-secret do not match any alliance credentials
+  operation: GET /reports/api/v1/summary, GET /reports/api/v1/detailed, GET /reports/api/v1/customer-offer-history
+  source: https://docs.sunbit.com/docs/reporting/transactions-summary-report
+- status: 403
+  title: Forbidden
+  detail: Your IP address is not registered to access this endpoint. Contact for authorization
+  operation: GET /reports/api/v1/customer-offer-history
+  remediation: The Customer Offer History report is IP-allowlisted in addition to key auth.
+  source: https://docs.sunbit.com/docs/reporting/customer-offer-history-report
+- status: 404
+  title: Resource Not Found
+  detail: Location was not found
+  operation: GET /reports/api/v1/summary, GET /reports/api/v1/detailed, GET /reports/api/v1/customer-offer-history
+  source: https://docs.sunbit.com/docs/reporting/transactions-summary-report
+- status: 500
+  title: Internal Server Error
+  detail: Something went wrong on Sunbit's side
+  operation: GET /reports/api/v1/summary, GET /reports/api/v1/detailed, GET /reports/api/v1/customer-offer-history
+  source: https://docs.sunbit.com/docs/reporting/transactions-detailed-report
+
+coverage:
+  problems: 44
+  operations_with_documented_errors: 12
+  statuses_used: [400, 401, 403, 404, 409, 422, 500]
+  operations_without_a_documented_error_table:
+  - PUT /epay/api/v1/epay/cancel/{purchaseId}
+  - PUT /epay/api/v1/epay/changeAmount/{purchaseId}
+
+gaps:
+- Void and partial-refund publish no error table at all — the two most consequential
+  money-moving operations in the API are the least documented on failure.
+- No machine-readable error registry, no stable error codes on the legacy services (identity
+  is a free-text message string that can change without notice).
+- Credential failure is 401 on two services and 403 on four others.
+- No RFC 9457 application/problem+json, no problem type URIs.

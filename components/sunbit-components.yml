@@ -1,0 +1,210 @@
+generated: '2026-07-31'
+method: searched
+source: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+docs: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+note: >-
+  Sunbit's client-side surface is a single hosted JavaScript library that exposes a small set
+  of render methods and one hosted modal. There is no npm package, no web-component custom
+  elements, and no framework bindings — the library is loaded from a CDN and attaches a global.
+
+loader:
+  library: sunbit-sdk.js
+  url: https://static.sunbit.com/sdk/sunbit-sdk.js
+  global: SUNBIT
+  load_pattern: |
+    <script>
+      window.sunbitAsyncInit = function() {
+        SUNBIT.init({
+          sunbitKey: '<YOUR SUNBIT_KEY>',
+          mode: 'SANDBOX',
+          location: '<YOUR LOCATION NAME>',
+          representative: '<REPRESENTATIVE>',
+          representativeEmail: '<REPRESENTATIVE EMAIL>',
+          ro: '<RO>'
+        });
+      };
+    </script>
+    <script async defer src="https://static.sunbit.com/sdk/sunbit-sdk.js"></script>
+  init_callback: window.sunbitAsyncInit
+  recommended_attributes:
+  - async
+  - defer
+  init_options:
+  - name: sunbitKey
+    required: true
+    type: text
+    description: publishable partner key; the secret must never be placed here
+  - name: mode
+    required: false
+    type: text
+    enum: [SANDBOX, DEMO, PROD]
+    default: SANDBOX
+  - name: location
+    required: false
+    type: text
+    description: mandatory for the check-financing link and the As Low As elements
+  - name: representative
+    required: false
+    type: text
+  - name: representativeEmail
+    required: false
+    type: text
+  - name: ro
+    required: false
+    type: text
+    description: external transaction identifier supplied by the integrator
+  - name: enablePaymentPath
+    required: false
+    type: boolean
+    description: set true to load the Payment Path module
+
+families:
+
+- family: Estimate ("As Low As")
+  docs: https://docs.sunbit.com/docs/sdk-integrations/sunbit-sdk-estimate
+  description: >-
+    Renders an estimated monthly payment inline wherever a price, estimate or invoice is
+    shown. Sunbit's disclaimer element is mandatory whenever the As Low As component is
+    displayed.
+  components:
+  - name: SUNBIT.UI.asLowAs
+    signature: SUNBIT.UI.asLowAs(containerId, disclaimerContainerId, { totalAmount })
+    containers:
+    - sunbit-ala
+    - sunbit-ala-disclaimer
+    returns: object exposing updateAmount(newAmount)
+    description: >-
+      As Low As text element plus mandatory disclaimer. Re-render on cart change either by
+      calling asLowAs again with a new sum or by calling the returned updateAmount.
+  - name: SUNBIT.UI.asLowAsWithLink
+    signature: SUNBIT.UI.asLowAsWithLink(containerId, disclaimerContainerId, { totalAmount, theme })
+    description: >-
+      Same as asLowAs but also renders a link through to Sunbit's pre-qualification site
+      ("check financing options").
+  backing_api: PUT /purchase/api/v1/payment-estimation
+
+- family: Pre-qualification
+  docs: https://docs.sunbit.com/docs/sdk-integrations/sunbit-sdk-prequal
+  description: Adds a pre-qualification entry point to any page.
+  components:
+  - name: SUNBIT.UI.checkFinancingLink
+    signature: SUNBIT.UI.checkFinancingLink(containerId, { theme })
+    containers:
+    - sunbit-cfl
+    options:
+      theme:
+        enum: [sunbitBlue, sunbitYellow, default]
+        values:
+          sunbitBlue: '#345275'
+          sunbitYellow: '#ffc80a'
+          default: inherit the site's default link styling
+    description: Anchor link to Sunbit's check-financing-options page.
+  backing_api: PUT /purchase/api/v1/online-link
+
+- family: Checkout
+  docs: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
+  description: >-
+    Adds Sunbit as a payment method. The merchant's server initializes the transaction to get
+    a JWT, then the browser opens Sunbit's hosted modal with that token.
+  components:
+  - name: SUNBIT.UI.checkoutElement
+    signature: SUNBIT.UI.checkoutElement(selector, { theme, size })
+    options:
+      size:
+        enum: [small, medium, large]
+        default: medium
+      theme:
+        enum: [dark, light, white, transparent]
+        default: dark
+    description: Renders the "Checkout with Sunbit" button.
+  - name: SUNBIT.epay.init
+    signature: SUNBIT.epay.init({ onInitFinish })
+    description: >-
+      Prepares the checkout module; the button's click listener must be attached inside
+      onInitFinish.
+  - name: SUNBIT.epay.checkout
+    signature: SUNBIT.epay.checkout({ token, onCompleted, onCanceled, onUserCancelled, onPlaceInFlow, onPurchaseVerified })
+    type: hosted modal (iframe)
+    description: >-
+      Opens Sunbit's hosted checkout. `token` is the JWT returned by the server-to-server
+      initialization call.
+    callbacks:
+    - name: onCompleted
+      fires: transaction completed and the iframe closed
+      data: [checkoutContext, page, type, purchaseId]
+    - name: onCanceled
+      fires: transaction completed unsuccessfully
+      data: [checkoutContext, type, purchaseId]
+    - name: onUserCancelled
+      fires: the user cancelled
+      data: [checkoutContext, type, purchaseId]
+    - name: onPlaceInFlow
+      fires: on every page change within the flow
+      data: [type, page, purchaseId]
+    - name: onPurchaseVerified
+      fires: the purchase was verified
+      data: [checkoutContext, type, purchaseId]
+    flow_pages:
+    - PHONE_NUMBER
+    - PHONE_VERIFICATION
+    - CUSTOMER_DETAILS
+    - EMAIL_VERIFICATION
+    - PAYMENT_PLAN
+    - PAYMENT_METHOD
+    - AGREEMENT
+    - AUTHORIZATION
+    - THANK_YOU
+    flow_pages_note: >-
+      The onPlaceInFlow enum can repeat within a single flow; only the last callback is
+      authoritative for the customer's position.
+  backing_api: POST /epay/api/v1/epay (init) and GET /epay/api/v1/epay (validate)
+
+- family: Payment Path
+  docs: https://docs.sunbit.com/docs/sdk-integrations/sunbit-payment-path
+  description: >-
+    A guided in-store flow letting a representative and a customer explore payment plans
+    together, with automatic status tracking for an existing application.
+  components:
+  - name: SUNBIT.PaymentPathModule
+    type: Promise resolving to the module
+    signature: SUNBIT.PaymentPathModule.then(paymentPath => paymentPath.init(selector, options))
+    init_options:
+    - token
+    - referenceId
+    - totalAmount
+    - orderId
+    - customerDetails
+    rendered: an "Explore payment plans" button
+    behaviour: >-
+      On click the SDK checks whether an application already exists for the referenceId; if it
+      does the status page is shown, otherwise a new application flow starts and the customer
+      is sent a link.
+    requires: enablePaymentPath true at init
+  backing_api: POST /alliance/api/v1/merchant-authentication (bearer token)
+
+- family: Embedded partner dashboard
+  docs: https://docs.sunbit.com/docs/api-integrations/embedded-portal
+  description: >-
+    Not a JS component — a server-side API that mints a one-time URL granting access to the
+    Sunbit Partner Dashboard without a login, intended to be embedded in the partner's own
+    product.
+  components:
+  - name: embeddedPortalURL
+    type: hosted page / iframe target
+    host: https://dashboard.sunbit.com
+    example: https://dashboard.sunbit.com?token=eyJwcm9kVG9rZ...098562
+  backing_api: POST /developers-portal-service/api/v2/auth/login-link
+
+distribution:
+  registry: none
+  channel: CDN (static.sunbit.com)
+  versioning: unversioned URL — the CDN path carries no version or integrity hash, so Sunbit
+    can change the shipped library under every integrator at once
+  subresource_integrity: not published
+  typescript_types: not published
+
+gaps:
+- No npm package and no framework wrappers (React/Vue/Angular), so the SDK cannot be bundled,
+  pinned, or type-checked; every integration is a runtime script tag.
+- The loader URL is unversioned and publishes no SRI hash.
+- No documented events/telemetry hooks beyond the checkout callbacks.

@@ -1,0 +1,322 @@
+generated: '2026-07-31'
+method: searched
+source: https://docs.sunbit.com/docs/webhooks/webhooks-setup
+spec_type: none
+note: >-
+  Sunbit documents a real webhook surface but publishes NO AsyncAPI document. Probing
+  /asyncapi.yaml, /asyncapi.json and the docs host returned nothing, and Sunbit has no public
+  GitHub organization. This file is therefore the webhook catalog transcribed verbatim from
+  the Webhooks section of docs.sunbit.com — it is deliberately NOT a hand-authored AsyncAPI
+  document, because Sunbit does not publish one.
+docs: https://docs.sunbit.com/docs/webhooks/webhooks-setup
+
+transport:
+  protocol: http
+  method: POST
+  content_type: application/json
+  destination: >-
+    A single partner-supplied endpoint URL, configured per environment under the Webhooks tab
+    of the Sunbit Developers Portal. There is no per-event-type subscription and no event
+    filtering — all enabled events are delivered to the one configured URL.
+  environments:
+  - sandbox
+  - production
+
+security:
+  scheme: HMAC-SHA256 request signature
+  header: Sunbit-Signature
+  header_format: t=<unix-seconds>,v1=<hex-hmac-sha256>
+  header_example: >-
+    Sunbit-Signature: t=1565220904,v1=20c75c1180c701ee8a796e81507cfd5c932fc17cf63a4a55566fd38da3a2d3d2
+  signed_payload: '<timestamp> + "." + <raw JSON request body>'
+  scheme_versions:
+    v1: only valid signature scheme
+  secret:
+    issued_by: Sunbit Developers Portal
+    generated_when: the webhook endpoint is configured
+    rotation: not documented
+  replay_protection: >-
+    The timestamp is signed; Sunbit recommends the integrator compare it to the current time
+    and reject anything outside a tolerance window (recommended up to 5 minutes).
+  verification_docs: https://docs.sunbit.com/docs/webhooks/webhooks-verify-signature
+  reference_implementation: JavaScript (node crypto.createHmac) published in the docs
+
+envelope:
+  shape:
+    eventType: string
+    payload: object
+  note: >-
+    Every event uses the same two-field envelope. There is no event id, no delivery id, no
+    event timestamp inside the body (the only timestamp is the signed one in the header), and
+    no API version field — so consumers cannot dedupe on an event identifier.
+
+delivery_semantics:
+  retries: not documented
+  ordering: not documented
+  at_least_once: not documented
+  deduplication_key: >-
+    none published; the practical correlation keys are payload.purchaseId and payload.referral
+    (the integrator's own transactionId echoed back)
+  test_tooling: >-
+    A test button in the Developers Portal fires a sample delivery; the docs suggest pointing
+    the URL at webhook.site or ngrok during integration.
+
+event_groups:
+
+- group: Merchant Onboarding Status
+  docs: https://docs.sunbit.com/docs/webhooks/webhooks-onboarding-status
+  description: >-
+    Real-time progress of a merchant location's onboarding application, mirroring the status
+    field returned by GET /onboarding/api/v1/location/{location}.
+  payload_fields:
+  - name: location
+    type: text
+    description: the same location identifier that was sent to the onboarding API
+  - name: url
+    type: text
+    description: merchant application URL
+  - name: statusReason
+    type: text
+    description: human-readable decline reason when DECLINED, otherwise "NONE"
+  example: |
+    {
+      "eventType": "MERCHANT_CREATED",
+      "payload": {
+        "location": "retailer",
+        "url": "merchant/application/url",
+        "statusReason": "NONE"
+      }
+    }
+  events:
+  - MERCHANT_CREATED
+  - MERCHANT_LOCATION_DETAILS_ADDED
+  - MERCHANT_CONTACT_DETAILS_ADDED
+  - MERCHANT_BANK_INFORMATION_ADDED
+  - MERCHANT_LEGAL_INFORMATION_ADDED
+  - MERCHANT_SUBMITTED
+  - MERCHANT_ACTIVATED
+  - MERCHANT_DECLINED
+
+- group: Pre-qualification
+  docs: https://docs.sunbit.com/docs/webhooks/webhooks-prequal
+  description: >-
+    Outcome of a customer's pre-qualification application, initiated by
+    PUT /purchase/api/v1/online-link or the Payment Path SDK.
+  payload_fields:
+  - name: purchaseId
+    type: text
+    description: Sunbit-generated purchase id; the key for lookup, void and refund
+  - name: location
+    type: text
+  - name: approvalAmount
+    type: text
+    description: the maximum amount the customer was approved for
+  - name: purchaseAmountEntered
+    type: text
+    description: the purchase amount the customer entered
+  - name: referral
+    type: text
+    description: the integrator's external transaction identifier, echoed back for matching
+  - name: validUntil
+    type: text
+    description: offer expiry, YYYY-MM-DD
+  - name: representativeEMail
+    type: text
+    description: >-
+      note the irregular capitalisation ("EMail") in the published field name, which differs
+      from representativeEmail used in the request bodies
+  - name: merchantFeeAmount
+    type: text
+    description: amount deducted as merchant fees from the total purchase amount
+  example: |
+    {
+      "eventType": "PREQUAL_COMPLETED",
+      "payload": {
+        "purchaseId": "123",
+        "location": "retailer",
+        "approvalAmount": "1000.0",
+        "purchaseAmountEntered": "500.0",
+        "referral": "referral",
+        "validUntil": "2021-09-01",
+        "representativeEMail": "jason@email.com",
+        "merchantFeeAmount": "5"
+      }
+    }
+  events:
+  - PREQUAL_COMPLETED
+  - PREQUAL_APPROVED
+  - PREQUAL_FAILED
+  - PREQUAL_ABORTED
+
+- group: Text to Pay-Over-Time
+  docs: https://docs.sunbit.com/docs/webhooks/webhooks-text-to-pay-over-time
+  description: >-
+    Outcome of an SMS pay-over-time checkout initiated by POST /epay/api/v1/epay/send-link.
+  payload_fields:
+  - name: purchaseId
+    type: text
+  - name: location
+    type: text
+  - name: purchaseAmount
+    type: number
+  - name: purchaseDate
+    type: text
+    description: 'YYYY-MM-DD HH:MM:SS'
+  - name: invoice
+    type: text
+    description: number manually entered in the Sunbit POS; nullable
+  - name: associateName
+    type: text
+    deprecated: true
+    deprecation_note: documented as deprecated 2022-12-31; superseded by representativeName
+  - name: representativeName
+    type: text
+  - name: representativeEmail
+    type: text
+  - name: referral
+    type: text
+  - name: merchantFeeAmount
+    type: number
+  example: |
+    {
+      "eventType": "TEXT_TO_PAY_COMPLETED",
+      "payload": {
+        "purchaseId": "99-999-999",
+        "location": "retailer4",
+        "purchaseAmount": 120.0,
+        "purchaseDate": "2021-11-04 01:01:02",
+        "invoice": null,
+        "associateName": "Jason",
+        "representativeName": "Jason",
+        "representativeEmail": "jason@email.com",
+        "referral": "9999",
+        "merchantFeeAmount": 5
+      }
+    }
+  events:
+  - TEXT_TO_PAY_COMPLETED
+  - TEXT_TO_PAY_FAILED
+  - TEXT_TO_PAY_ABORTED
+
+- group: Checkout SDK
+  docs: https://docs.sunbit.com/docs/webhooks/checkout-sdk
+  description: >-
+    Outcome of a hosted-modal checkout started with SUNBIT.epay.checkout against a token from
+    POST /epay/api/v1/epay.
+  payload_fields:
+  - name: purchaseId
+    type: text
+  - name: location
+    type: text
+  - name: purchaseAmount
+    type: text
+    note: >-
+      typed as text here but as number on the otherwise identical Text to Pay-Over-Time event
+  - name: purchaseDate
+    type: text
+    description: 'YYYY-MM-DD HH:MM:SS'
+  - name: invoice
+    type: text
+  - name: associateName
+    type: text
+    deprecated: true
+  - name: representativeName
+    type: text
+  - name: representativeEmail
+    type: text
+  - name: referral
+    type: text
+  - name: merchantFeeAmount
+    type: text
+  example: |
+    {
+      "eventType": "CHECKOUT_SDK_COMPLETED",
+      "payload": {
+        "purchaseId": "99-999-999",
+        "location": "retailer4",
+        "purchaseAmount": "120.0",
+        "purchaseDate": "2021-11-04 01:02:02",
+        "invoice": null,
+        "associateName": "Jason",
+        "representativeName": "Jason",
+        "representativeEmail": "jason@email.com",
+        "referral": "9999",
+        "merchantFeeAmount": "5"
+      }
+    }
+  events:
+  - CHECKOUT_SDK_COMPLETED
+  - CHECKOUT_SDK_FAILED
+  - CHECKOUT_SDK_ABORTED
+
+- group: Voided and Refunded Transactions
+  docs: https://docs.sunbit.com/docs/webhooks/webhooks-transactions-voided-and-refunded
+  description: >-
+    Emitted after PUT /epay/api/v1/epay/cancel/{purchaseId} (void) or
+    PUT /epay/api/v1/epay/changeAmount/{purchaseId} (partial refund), and after a
+    void/refund performed outside the API.
+  payload_fields:
+  - name: purchaseId
+    type: text
+  - name: location
+    type: text
+  - name: purchaseAmount
+    type: number
+    description: original total amount of the transaction
+  - name: netPurchaseAmount
+    type: number
+    description: >-
+      net amount after adjustments — equals purchaseAmount when nothing changed, 0 for VOIDED,
+      and the adjusted amount for REFUNDED
+  - name: purchaseDate
+    type: text
+    description: 'YYYY-MM-DD HH:MM:SS'
+  - name: modificationDate
+    type: text
+    description: 'YYYY-MM-DD HH:MM:SS — when the void/refund was applied'
+  - name: referral
+    type: text
+  - name: advisorName
+    type: text
+    deprecated: true
+  - name: representativeName
+    type: text
+  - name: merchantFeeAmount
+    type: number
+  example: |
+    {
+      "eventType": "TRANSACTION_REFUNDED",
+      "payload": {
+        "purchaseId": "938",
+        "location": "retailer",
+        "purchaseAmount": "140.0",
+        "netPurchaseAmount": "139.0",
+        "purchaseDate": "2022-04-13 23:27:06",
+        "modificationDate": "2022-04-20 01:42:51",
+        "referral": "123881",
+        "advisorName": null,
+        "representativeName": null,
+        "merchantFeeAmount": 5
+      }
+    }
+  events:
+  - TRANSACTION_VOIDED
+  - TRANSACTION_REFUNDED
+
+coverage:
+  event_groups: 5
+  event_types: 20
+  signed: true
+  signature_algorithm: HMAC-SHA256
+  asyncapi_published: false
+
+gaps:
+- No AsyncAPI (or any machine-readable event schema) is published — every consumer hand-codes
+  the payload shapes from prose tables.
+- One webhook URL per environment, no per-event subscription, no event filtering.
+- No event id or delivery id in the envelope, so exactly-once processing has to key off
+  purchaseId + eventType.
+- Retry and ordering semantics are undocumented.
+- Field typing is inconsistent between otherwise-identical events (purchaseAmount and
+  merchantFeeAmount are numbers on TEXT_TO_PAY_* and strings on CHECKOUT_SDK_*).
+- Secret rotation for the webhook signature is not documented.
