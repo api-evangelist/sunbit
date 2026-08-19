@@ -15,7 +15,7 @@ x-type: company
 x-source: harvest:secondary-market
 x-tier: profiled
 x-tier-reason: enrichment
-specificationVersion: '0.21'
+specificationVersion: '0.23'
 created: '2026-07-31'
 modified: '2026-07-31'
 image: https://sunbit.com/wp-content/uploads/2021/06/sunbit-logo.png
