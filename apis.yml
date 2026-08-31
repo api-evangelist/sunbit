@@ -31,20 +31,20 @@ created: '2026-07-31'
 modified: '2026-07-31'
 image: https://sunbit.com/wp-content/uploads/2021/06/sunbit-logo.png
 tags:
-- Buy Now Pay Later
-- point-of-sale-financing
-- Consumer Lending
+- buy-now-pay-later
+- Point of Sale Financing
+- consumer-lending
 - Payments
 - Fintech
-- Checkout
-- Merchant Onboarding
+- checkout
+- merchant-onboarding
 - Webhook
-- Automotive
-- Dental
-- Veterinary
-- Eyewear
-- Healthcare Financing
-- Embedded Finance
+- automotive
+- dental
+- veterinary
+- eyewear
+- healthcare-financing
+- embedded-finance
 tags_raw:
 - buy-now-pay-later
 - point-of-sale-financing
@@ -85,11 +85,11 @@ apis:
   humanURL: https://docs.sunbit.com/docs/overview/overview
   baseURL: https://api.sunbit.com/
   tags:
-  - Buy Now Pay Later
-  - point-of-sale-financing
+  - buy-now-pay-later
+  - Point of Sale Financing
   - Payments
-  - Checkout
-  - Merchant Onboarding
+  - checkout
+  - merchant-onboarding
   - Reporting
   tags_raw:
   - buy-now-pay-later
@@ -129,9 +129,9 @@ apis:
   humanURL: https://docs.sunbit.com/docs/sdk-integrations/sunbit-checkout-sdk
   baseURL: https://static.sunbit.com/sdk/sunbit-sdk.js
   tags:
-  - JavaScript SDK
-  - Checkout
-  - Embedded Components
+  - javascript-sdk
+  - checkout
+  - embedded-components
   tags_raw:
   - javascript-sdk
   - checkout
