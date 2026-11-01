@@ -64,53 +64,105 @@
 > Full detail: **[Where this data comes from](https://apievangelist.com/about/where-our-data-comes-from)**
 <!-- API-EVANGELIST-PROVENANCE:END -->
 
-Sunbit is a Los Angeles based financial technology company providing point-of-sale buy now,
-pay-over-time financing for everyday needs — auto service and dealerships, dental, eyewear,
-veterinary, med spa, home services and general retail. Merchants and SaaS platforms integrate
-through a partner REST API and a hosted JavaScript SDK.
+Sunbit is a Los Angeles based financial technology company that builds point-of-sale buy now, pay-over-time financing for everyday needs — auto service and dealerships, dental, eyewear, veterinary, med spa, home services, and general retail. Merchants and SaaS platforms integrate Sunbit through a partner API and a hosted JavaScript SDK covering four products: Pre-Qualification (send a customer a no-hard-credit-check qualification link), Sunbit Estimate (an "As Low As" monthly payment shown on a price, estimate or invoice), Checkout (Sunbit added as a payment method via a tokenized server-to-server flow and a modal), and Text to Pay-Over-Time (an SMS payment link). The platform also exposes merchant onboarding, transaction lookup, void and partial refund, reporting, and HMAC-SHA256 signed webhooks. Loans are originated through regulated bank partners.
 
-- Website — https://sunbit.com/
-- Developer docs — https://docs.sunbit.com/docs/overview/overview
-- Developers portal — https://developers.sunbit.com/
-- Status — https://status.sunbit.com/
-- Integration partners — https://sunbit.com/integration-partners/
+**Areas:** Buy Now Pay Later · Point of Sale Financing · Consumer Lending · Payments · Fintech · Checkout · Merchant Onboarding · Webhook · Automotive · Dental · Veterinary · Eyewear
 
-## API surface
+## Sunbit on APIs.io
 
-| Host | Environment |
+Everything profiled for Sunbit is published on APIs.io rather than in this repository. Start at the provider page — **[apis.io/providers/sunbit/](https://apis.io/providers/sunbit/)** — or go straight to one of the APIs or properties below.
+
+### APIs (2)
+
+- [Sunbit Partner API](https://apis.io/apis/sunbit/sunbit-partner-api/) — Server-to-server REST API for Sunbit partners and SaaS platforms. Covers pre-qualification links, "As Low As" payment estimation, Text to Pay-Over-Time SMS…
+- [Sunbit JavaScript SDK](https://apis.io/apis/sunbit/sunbit-javascript-sdk/) — Hosted, asynchronously loaded browser SDK (the SUNBIT global) that renders Sunbit's client-side surfaces: the "As Low As" estimate text element and…
+
+### Published properties
+
+Each property below is a page on APIs.io carrying the machine-readable artifact and what it says.
+
+#### AsyncAPI (1)
+
+Event-driven and webhook contracts.
+
+- [Sunbit Webhooks](https://apis.io/asyncapis/sunbit/sunbit-webhooks/)
+
+#### Security (3)
+
+Authentication, trust centre, and vulnerability disclosure.
+
+- [Sunbit Authentication](https://apis.io/security/sunbit/sunbit-authentication/)
+- [Sunbit Domain Security](https://apis.io/security/sunbit/sunbit-domain-security/)
+- [Sunbit Vulnerability Disclosure](https://apis.io/security/sunbit/sunbit-vulnerability-disclosure/)
+
+## Where to find this API
+
+Links to the company's own pages. This repository publishes no copy of their specifications — the canonical document is theirs and lives at the URLs below.
+
+- [Website](https://sunbit.com/)
+- [Documentation](https://docs.sunbit.com/docs/overview/overview)
+- [Getting started](https://docs.sunbit.com/docs/overview/getting-started)
+- [API reference](https://docs.sunbit.com/docs/api-integrations/sunbit-pre-qualification)
+- [Pricing](https://sunbit.com/rates_and_terms/)
+- [Sign up](https://sunbit.com/im-a-merchant/become-a-partner/)
+- [Support](https://sunbit.com/contact-us/)
+- [Blog](https://sunbit.com/knowledge-center/)
+- [Security](https://sunbit.com/.well-known/security.txt)
+- [Terms of service](https://sunbit.com/terms-of-use/)
+- [Privacy policy](https://sunbit.com/consumer_privacy/)
+- [Status](https://status.sunbit.com/)
+
+## API Evangelist rating
+
+**Kin Score 44.3** — developing · rubric 0.25.0 · scored 2026-10-23
+
+| Facet | Score |
 |---|---|
-| `https://api.sunbit.com` | production |
-| `https://api-sandbox.sunbit.com` | sandbox |
+| Discoverability | 73.2 |
+| Contract quality | 39.0 |
+| Contract governance | 4.5 |
+| Operational transparency | 28.9 |
+| Developer ergonomics | 63.7 |
+| Access clarity | 44.7 |
 
-Authentication is a `sunbit-key` / `sunbit-secret` header pair, with IP allowlisting on
-checkout initialization and the customer-offer-history report. There is no OAuth, no OIDC and
-no scope model.
+**Agent readiness 23.6** — agent-aware
 
-Fourteen documented operations across six services — `purchase` (pre-qualification,
-estimation), `epay` (checkout, text-to-pay, lookup, void, refund), `onboarding` (merchant
-locations), `reports`, `alliance` (Payment Path auth) and `developers-portal-service`
-(embedded dashboard) — plus 20 webhook event types signed with HMAC-SHA256.
-
-**Sunbit publishes no machine-readable contract.** No OpenAPI, Swagger, GraphQL, AsyncAPI,
-gRPC/proto, MCP server or A2A agent card was found on any of the eight Sunbit hosts probed.
-Every artifact in this repository is therefore transcribed or derived from Sunbit's published
-prose documentation, with the source URL recorded on each entry.
-
-## Artifacts
-
-| Path | What it holds |
+| Agent-readiness dimension | Result |
 |---|---|
-| `authentication/` | credential schemes, bearer variants, IP allowlisting, credential issuance |
-| `conventions/` | pagination, versioning, error envelopes, sentinel values, rate limiting, idempotency (absent) |
-| `errors/` | 44 documented errors across 12 operations |
-| `asyncapi/` | the 20-event webhook catalog and signature scheme (no AsyncAPI is published) |
-| `sandbox/` | sandbox hosts, SDK modes, transactionId simulation prefixes, demo test values |
-| `data-model/` | entities and relationships derived from the documented field tables |
-| `components/` | the hosted browser SDK surface |
-| `packages/` | client library inventory across eight registries |
-| `lifecycle/` | versioning, deprecation notices, status page, availability constraints |
-| `conformance/` | 34 standards assertions with evidence |
-| `security/` | domain security probe, vulnerability disclosure |
-| `well-known/` | `/.well-known` probe results across all eight hosts |
-| `skills/` | five packaged agent skills for the marquee flows |
-| `llms/` | generated `llms.txt` |
+| Spec Presence | yes |
+| Agentic Access | — |
+| Reversibility Documented | — |
+| MCP Server | — |
+| Auth Clarity | bearer (partial credit) |
+| Idempotency | — |
+| Error Semantics | documented (partial credit) |
+| OpenAPI Examples | — |
+| Rate Limit Signal | — |
+| Event Surface Described | yes |
+| Agent Skills | derived (partial credit) |
+| Well Known Catalog | — |
+| Consent Identity | — |
+| Agent Card | — |
+| Dry Run Mode | — |
+| Delegated Identity | — |
+| Protected Resource Metadata | — |
+| Dynamic Client Registration | — |
+| Agentic Commerce | — |
+| Pagination Ratio | na |
+| Operation Distinctiveness | na |
+
+**Regulatory alignment 27.7** — Payments
+
+The rubric is published at [github.com/api-evangelist/kin-score](https://github.com/api-evangelist/kin-score). The per-check breakdown behind these numbers — which checks were earned, partial or missed — along with score history and how this provider compares to its peers, is available at [apis.io/providers/sunbit/](https://apis.io/providers/sunbit/).
+
+## How this profile is made
+
+API Evangelist profiles a company's public API surface the way a developer would find it: the website, developer portal and documentation, the specifications it publishes, its public repositories, and its pricing, status and changelog pages. From that it derives the properties above — contracts split per API, workflows, schemas, collections, governance rules, plans and rate limits — and scores them against the published [Kin Score rubric](https://github.com/api-evangelist/kin-score).
+
+The artifacts are published on [APIs.io](https://apis.io), not in this repository. This repository is the public record for Sunbit: the place to say something is wrong, missing or out of date, and to ask for a re-score or a removal.
+
+## Open an issue
+
+- **Something about this listing** — a wrong description, a missing API, a stale artifact or a question about the rating: [open an issue on this repository](https://github.com/api-evangelist/sunbit/issues/new).
+- **A new API, or one that is not in the catalog yet** — [submit it on APIs.io](https://apis.io/add/).
+- **Anything else** — [the APIs.io inbox](https://github.com/api-search/inbox/issues/new) or [info@apievangelist.com](mailto:info@apievangelist.com).
